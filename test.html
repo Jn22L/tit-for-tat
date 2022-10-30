@@ -1,0 +1,30 @@
+<style>
+  .visible {
+    visibility: visible;
+  }
+
+  .not-visible {
+    visibility: hidden;
+  }
+  .collapse {
+    visibility: collapse;
+  }
+</style>
+
+<h1 id="timer">10</h1>
+<button id="stop">stop</button>
+
+<script>
+  document.querySelector("#stop").addEventListener("click", function () {
+    clearInterval(restartTimerID);
+  });
+  var restartTimerID;
+  var timer10 = 10;
+  restartTimerID = setInterval(function () {
+    document.querySelector("#timer").innerHTML = timer10;
+    timer10--;
+    if (timer10 < 0) {
+      clearInterval(restartTimerID);
+    }
+  }, 1000);
+</script>

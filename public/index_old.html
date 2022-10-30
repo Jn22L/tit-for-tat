@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>test</title>
+  </head>
+  <style>
+    #messages {
+      list-style-type: none;
+      padding: 0;
+    }
+    #input-join {
+      width: 50px;
+    }
+  </style>
+  <body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <div><input id="input-join" autocomplete="off" /><button id="btn-join">J</button></div>
+      <div style="display: none;"><input id="input-send" autocomplete="off" /><button>Send</button></div>
+    </form>
+    <div><label id="label-round" style="display: none;">Round 1</label></div>
+    <br />
+    <div>
+      <label id="label-score-user1" style="display: none;"></label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <label id="label-score-user2" style="display: none;"></label>
+    </div>
+    <br />
+    <div>
+      <label id="label-user-1"></label><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span
+      ><label id="label-user-2"></label>
+    </div>
+    <div>
+      <button id="btn-o-user-1" style="display: none;">O</button><button id="btn-x-user-1" style="display: none;">X</button
+      ><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><button id="btn-o-user-2" style="display: none;">O</button
+      ><button id="btn-x-user-2" style="display: none;">X</button>
+    </div>
+    <br />
+    <div><label id="label-status"></label></div>
+    <br /><br />
+    <div><label id="label-all-users" style="display: none;">All Users:</label></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io(); // URL 지정하지 않음!
+      var localNickname;
+      var form = document.querySelector("#form");
+      var inputJoin = document.querySelector("#input-join");
+      var btnJoin = document.querySelector("#btn-join");
+      var inputSend = document.querySelector("#input-send");
+      var labelRound = document.querySelector("#label-round");
+      var labelScoreUser1 = document.querySelector("#label-score-user1");
+      var labelScoreUser2 = document.querySelector("#label-score-user2");
+      var labelUser1 = document.querySelector("#label-user-1");
+      var labelUser2 = document.querySelector("#label-user-2");
+      var labelAllUsers = document.querySelector("#label-all-users");
+      var btnOUser1 = document.querySelector("#btn-o-user-1");
+      var btnXUser1 = document.querySelector("#btn-x-user-1");
+      var btnOUser2 = document.querySelector("#btn-o-user-2");
+      var btnXUser2 = document.querySelector("#btn-x-user-2");
+      var labelStatus = document.querySelector("#label-status");
+      var scoreArr = [{ idx: 0, round: 1, user1Choice: "", user2Choice: "", user1Score: 0, user2Score: 0 }];
+      var roundIdx = 0; // 현재 라운드 idx
+      var gameOverIdx = 9; // 종료 라운드 idx
+
+      btnJoin.addEventListener("click", function (e) {
+        if (inputJoin.value.trim() === "" || inputJoin.value == null) {
+          alert("please enter name");
+          return;
+        }
+        localNickname = inputJoin.value;
+        socket.emit("join user", inputJoin.value);
+      });
+
+      btnOUser1.addEventListener("click", function (e) {
+        btnOUser1.disabled = true;
+        btnXUser1.disabled = true;
+        socket.emit("choice", { userNo: 1, choiceVal: "O" });
+      });
+      btnXUser1.addEventListener("click", function (e) {
+        btnOUser1.disabled = true;
+        btnXUser1.disabled = true;
+        socket.emit("choice", { userNo: 1, choiceVal: "X" });
+      });
+      btnOUser2.addEventListener("click", function (e) {
+        btnOUser2.disabled = true;
+        btnXUser2.disabled = true;
+        socket.emit("choice", { userNo: 2, choiceVal: "O" });
+      });
+      btnXUser2.addEventListener("click", function (e) {
+        btnOUser2.disabled = true;
+        btnXUser2.disabled = true;
+        socket.emit("choice", { userNo: 2, choiceVal: "X" });
+      });
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (inputSend.value) {
+          socket.emit("chat message", inputSend.value);
+          inputSend.value = "";
+        }
+      });
+
+      socket.on("join user", function (user) {
+        //labelStatus.innerHTML = "HERE COMES A NEW CHANLLENGER! - " + msg;
+        var userIdx = 0;
+        user.userList.forEach(function (user) {
+          if (userIdx === 0) {
+            // 첫번째 유저 - 로그인
+            console.log("첫번재 유저 로그인", userIdx);
+            labelUser1.innerHTML = user.nickname;
+            labelRound.setAttribute("style", "display:inline;");
+            if (localNickname === user.nickname) {
+              form.setAttribute("style", "display:none;");
+              btnOUser1.setAttribute("style", "display:inline-block;");
+              btnXUser1.setAttribute("style", "display:inline-block;");
+              btnOUser2.setAttribute("style", "display:none;");
+              btnXUser2.setAttribute("style", "display:none;");
+            }
+          } else if (userIdx === 1) {
+            // 두번째 유저 - 로그인
+            console.log("두번째 유저 로그인", userIdx);
+            labelUser2.innerHTML = user.nickname;
+            labelRound.setAttribute("style", "display:inline;");
+            if (localNickname === user.nickname) {
+              form.setAttribute("style", "display:none;");
+              btnOUser1.setAttribute("style", "display:none;");
+              btnXUser1.setAttribute("style", "display:none;");
+              btnOUser2.setAttribute("style", "display:inline-block;");
+              btnXUser2.setAttribute("style", "display:inline-block;");
+            }
+          } else {
+            // 나머지 유저 - 관전
+          }
+          userIdx++;
+        });
+
+        labelStatus.innerHTML = user.nickname + " join";
+        //labelAllUsers.innerHTML = `All Users:${user.userCount}`;
+      });
+
+      socket.on("choice", function (play) {
+        if (play.userNo === 1) {
+          scoreArr[roundIdx].user1Choice = play.choiceVal;
+        } else if (play.userNo === 2) {
+          scoreArr[roundIdx].user2Choice = play.choiceVal;
+        }
+        if (scoreArr[roundIdx].user1Choice !== "" && scoreArr[roundIdx].user2Choice !== "") {
+          console.log("모두 선택했으면 점수계산 시작 ");
+          if (scoreArr[roundIdx].user1Choice === "O" && scoreArr[roundIdx].user2Choice === "O") {
+            scoreArr[roundIdx].user1Score = 3;
+            scoreArr[roundIdx].user2Score = 3;
+            console.log("점수:O,O", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          } else if (scoreArr[roundIdx].user1Choice === "O" && scoreArr[roundIdx].user2Choice === "X") {
+            scoreArr[roundIdx].user1Score = 0;
+            scoreArr[roundIdx].user2Score = 5;
+            console.log("점수:O,X", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          } else if (scoreArr[roundIdx].user1Choice === "X" && scoreArr[roundIdx].user2Choice === "O") {
+            scoreArr[roundIdx].user1Score = 5;
+            scoreArr[roundIdx].user2Score = 0;
+            console.log("점수:O,O", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          } else if (scoreArr[roundIdx].user1Choice === "X" && scoreArr[roundIdx].user2Choice === "X") {
+            scoreArr[roundIdx].user1Score = 1;
+            scoreArr[roundIdx].user2Score = 1;
+            console.log("점수:O,O", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          }
+          if (roundIdx >= gameOverIdx) {
+            // game over
+            var totalScoreUser1 = 0,
+              totalScoreUser2 = 0;
+            scoreArr.forEach(function (round) {
+              totalScoreUser1 += round.user1Score;
+              totalScoreUser2 += round.user2Score;
+            });
+
+            socket.emit("game over", { totalScoreUser1, totalScoreUser2 });
+          } else {
+            // go next round
+            console.log("모두 선택했으면 점수계산 시작 -> 다음라운드 진행 ", roundIdx);
+            labelScoreUser1.setAttribute("style", "display:inline;");
+            labelScoreUser2.setAttribute("style", "display:inline;");
+            labelScoreUser1.innerHTML = "<span style='color:red'>" + scoreArr[roundIdx].user1Choice + "</span>" + " 선택 - 점수:" + scoreArr[roundIdx].user1Score;
+            labelScoreUser2.innerHTML = "<span style='color:red'>" + scoreArr[roundIdx].user2Choice + "</span>" + " 선택 - 점수:" + scoreArr[roundIdx].user2Score;
+            //labelScoreUser1.innerHTML = scoreArr[roundIdx].user1Choice + "선택 - 점수:" + scoreArr[roundIdx].user1Score;
+            //labelScoreUser2.innerHTML = scoreArr[roundIdx].user2Choice + "선택 - 점수:" + scoreArr[roundIdx].user2Score;
+            roundIdx++;
+            var timer3 = 3;
+            timerId = setInterval(function () {
+              labelStatus.innerHTML = `<span style='color:red'>${timer3}</span>초후 다음라운드 진행합니다.`;
+              timer3--;
+            }, 1000);
+            setTimeout(function () {
+              clearInterval(timerId);
+              labelStatus.innerHTML = `다음라운드를 시작합니다.`;
+              https: socket.emit("next round", roundIdx);
+            }, 4000);
+            //document.getElementById("stop_timer").onclick = function () {
+            // 인라인 함수
+            //   clearInterval(timerId); // timerId 값을 인자로 입력하여 해당 setInterval 을 종료시킵니다.
+            // };
+
+            //https: socket.emit("next round", roundIdx);
+          }
+        }
+        console.log("choice", scoreArr);
+      });
+
+      socket.on("next round", function (roundIdx) {
+        if (!scoreArr[roundIdx]) {
+          scoreArr.push({ idx: roundIdx, round: Number(roundIdx) + 1, user1Choice: "", user2Choice: "", user1Score: 0, user2Score: 0 });
+        }
+        labelRound.innerHTML = "Round " + `<span style='color:blue'>${Number(roundIdx) + 1}</span>`;
+        console.log("다음라운드:", scoreArr);
+        btnOUser1.disabled = false;
+        btnXUser1.disabled = false;
+        btnOUser2.disabled = false;
+        btnXUser2.disabled = false;
+      });
+
+      socket.on("game over", function (result) {
+        result.totalScoreUser1;
+        result.totalScoreUser2;
+        labelStatus.innerHTML = `게임종료 점수 = 1번점수:${result.totalScoreUser1} 2번점수:${result.totalScoreUser2}`;
+        console.log("게임종료:", result);
+      });
+
+      socket.on("chat message", function (msg) {
+        console.log(msg);
+        // var item = document.createElement("li");
+        // item.textContent = msg;
+        // messages.appendChild(item);
+        // window.scrollTo(0, document.body.scrollHeight);
+      });
+    </script>
+  </body>
+</html>
