@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tit-for-Tat(TFT) Game - HappyJ</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+      #div-your-wrapper {
+        background-color: #e8f5e9;
+        width: 300px;
+      }
+      #div-your {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 2fr;
+        grid-template-areas: "nickname your-status";
+      }
+      #h1-your-id {
+        grid-area: nickname;
+        text-align: center;
+      }
+      #h1-your-status {
+        grid-area: your-status;
+        text-align: center;
+      }
+      #div-playground-wrapper {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        width: 300px;
+        height: 200px;
+      }
+      #div-your-playground {
+        height: 50px;
+        font-size: 28px;
+      }
+      #div-center-playground {
+        height: 100px;
+        font-size: 32px;
+      }
+      #div-my-playground {
+        height: 50px;
+        font-size: 28px;
+      }
+      #div-my-wrapper {
+        background-color: #fffde7;
+        width: 300px;
+      }
+      #div-my {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        grid-template-areas:
+          "nickname button-o"
+          "nickname button-x"
+          "my-status-bar my-status-bar";
+      }
+      #h1-my-id {
+        grid-area: nickname;
+        text-align: center;
+      }
+      #btn-my-o {
+        grid-area: button-o;
+      }
+      #btn-my-x {
+        grid-area: button-x;
+      }
+      #div-my-status-bar {
+        grid-area: my-status-bar;
+        text-align: center;
+        background-color: pink;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="div-join"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">Join</button></div>
+    <div id="div-your-wrapper" style="visibility: hidden">
+      <div id="div-your">
+        <h1 id="h1-your-id"></h1>
+        <h1 id="h1-your-status"></h1>
+      </div>
+    </div>
+    <div id="div-playground-wrapper">
+      <div id="div-your-playground"></div>
+      <div id="div-center-playground"></div>
+      <div id="div-my-playground"></div>
+    </div>
+    <div id="div-my-wrapper" style="visibility: hidden">
+      <div id="div-my">
+        <h1 id="h1-my-id"></h1>
+        <button id="btn-my-o" disabled>협력</button><button id="btn-my-x" disabled>배신</button>
+        <div id="div-my-status-bar"></div>
+      </div>
+    </div>
+    <script>
+      const socket = io();
+      let myNickName;
+      let myPlayerNo;
+      const inputJoin = document.querySelector("#input-join");
+      const btnJoin = document.querySelector("#btn-join");
+      const btnMyO = document.querySelector("#btn-my-o");
+      const btnMyX = document.querySelector("#btn-my-x");
+      var scoreArr = [{ idx: 0, round: 1, user1Choice: "", user2Choice: "", user1Score: 0, user2Score: 0 }];
+      var roundIdx = 0; // 현재 라운드 idx
+      //var gameOverIdx = 9; // 종료 라운드 idx
+      var gameOverIdx = 1; // 종료 라운드 idx
+
+      btnJoin.addEventListener("click", function (e) {
+        if (inputJoin.value.trim() === "" || inputJoin.value == null) {
+          alert("please enter name");
+          inputJoin.focus();
+          return;
+        }
+        myNickName = inputJoin.value;
+        socket.emit("join user", myNickName);
+        document.querySelector("#div-join").setAttribute("style", "display:none");
+      });
+
+      btnMyO.addEventListener("click", function (e) {
+        btnMyO.disabled = true;
+        btnMyX.disabled = true;
+        socket.emit("choice", { roundIdx, playerNo: myPlayerNo, choiceVal: "O" });
+      });
+
+      btnMyX.addEventListener("click", function (e) {
+        btnMyO.disabled = true;
+        btnMyX.disabled = true;
+        socket.emit("choice", { roundIdx, playerNo: myPlayerNo, choiceVal: "X" });
+      });
+
+      // 아이디 중복체크
+      socket.on("join user dup", function (msg) {
+        console.log("join user dup - inputJoin", inputJoin);
+        console.log("join user dup - 서버", msg);
+      });
+
+      // 정상 로그인
+      socket.on("join user", function (msg) {
+        console.log("join user", msg);
+        let playerCount = msg.userList.filter((v) => v.playerNo > 0).length;
+        const player1 = msg.userList.filter((v) => v.playerNo === 1);
+        const player2 = msg.userList.filter((v) => v.playerNo === 2);
+        const my = msg.userList.filter((v) => v.nickName === myNickName);
+
+        console.log("playerCount", playerCount);
+        console.log("join user2", my);
+        console.log("join user.myPlayerNo ", myPlayerNo);
+
+        myPlayerNo = my[0].playerNo;
+
+        // 선수입장 메시지
+        console.log("player count", playerCount);
+        if (playerCount <= 2) {
+          document.querySelector("#div-center-playground").innerHTML = `${msg.joinUserNickName}님 입장`;
+        }
+
+        if (playerCount === 1) {
+          // 선수 1명 입장시
+          if (myNickName === player1[0].nickName) {
+            document.querySelector("#div-your-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-your-status").innerHTML = "입장대기중";
+            document.querySelector("#div-my-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-my-id").innerHTML = player1[0].nickName;
+            document.querySelector("#div-my-status-bar").innerHTML = "[협력] 또는 [배신]을 선택하세요";
+          }
+        } else if (playerCount >= 2) {
+          // 선수 2명 이상 입장시
+          if (playerCount === 2) {
+            var timer3 = 3;
+            timerId = setInterval(function () {
+              document.querySelector("#div-center-playground").innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.`;
+              timer3--;
+              if (timer3 < 0) {
+                clearInterval(timerId);
+                if (myPlayerNo <= 2) {
+                  document.querySelector("#h1-your-status").innerHTML = "<span style='color:blue'>선택중</span>";
+                  document.querySelector("#div-my-status-bar").innerHTML = "[협력] 또는 [배신]을 선택하세요";
+                } else {
+                  document.querySelector("#h1-your-status").innerHTML = "";
+                  document.querySelector("#div-my-status-bar").innerHTML = "[관전모드] 입니다.";
+                }
+                document.querySelector("#div-center-playground").innerHTML = "Round " + `<span style='color:blue'>${Number(roundIdx) + 1}</span>`;
+                //alert("버튼 활성");
+                btnMyO.disabled = false;
+                btnMyX.disabled = false;
+              }
+            }, 1000);
+          }
+
+          if (myPlayerNo === 1) {
+            // 내가 1번일때
+            console.log("선수2명: 내가 1 번일때");
+            document.querySelector("#div-your-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-your-id").innerHTML = player2[0].nickName;
+            document.querySelector("#div-my-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-my-id").innerHTML = myNickName;
+            btnMyO.setAttribute("style", "visibility: visible;");
+            btnMyX.setAttribute("style", "visibility: visible;");
+            btnMyO.disabled = true;
+            btnMyX.disabled = true;
+          } else if (myPlayerNo === 2) {
+            // 내가 2번일때
+            console.log("선수2명: 내가 2 번일때");
+            document.querySelector("#div-your-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-your-id").innerHTML = player1[0].nickName;
+            document.querySelector("#div-my-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-my-id").innerHTML = myNickName;
+            btnMyO.setAttribute("style", "visibility: visible;");
+            btnMyX.setAttribute("style", "visibility: visible;");
+            btnMyO.disabled = true;
+            btnMyX.disabled = true;
+          } else if (myPlayerNo > 2) {
+            // 내가 관전일때
+            console.log("내가 관전 일때");
+            document.querySelector("#div-your-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-your-id").innerHTML = player1[0].nickName;
+            document.querySelector("#div-my-wrapper").setAttribute("style", "visibility: visible;");
+            document.querySelector("#h1-my-id").innerHTML = player2[0].nickName;
+            btnMyO.setAttribute("style", "visibility: hidden;");
+            btnMyX.setAttribute("style", "visibility: hidden;");
+          }
+        }
+      });
+
+      socket.on("choice", function (play) {
+        console.log("choice", play, myPlayerNo);
+        //if (myPlayerNo > 2) return; // 1,2 번만 참여가능
+
+        if (play.playerNo === 1) {
+          scoreArr[roundIdx].user1Choice = play.choiceVal;
+        } else if (play.playerNo === 2) {
+          scoreArr[roundIdx].user2Choice = play.choiceVal;
+        }
+
+        // 관전은 항상표시
+        if ((myPlayerNo !== 1 && myPlayerNo !== 2) || myPlayerNo === undefined) {
+          console.log("관전자 점수표시", myPlayerNo);
+          if (play.playerNo === 1) {
+            document.querySelector("#div-your-playground").innerHTML = "<span style='color:red'>" + (play.choiceVal === "O" ? "협력" : "배신") + "</span>";
+          }
+          if (play.playerNo === 2) {
+            document.querySelector("#div-my-playground").innerHTML = "<span style='color:red'>" + (play.choiceVal === "O" ? "협력" : "배신") + "</span>";
+          }
+          if (play.user1Choice !== "" && play.user2Choice !== "") {
+            console.log("관전자 점수집계 ~~~~~~~~~~~~~");
+            if (play.user1Choice === "O" && play.user2Choice === "O") {
+              console.log("관전자 점수집계 0,0");
+              document.querySelector("#div-your-playground").innerHTML = "<span style='color:red'>" + (play.user1Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 3;
+              document.querySelector("#div-my-playground").innerHTML = "<span style='color:red'>" + (play.user2Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 3;
+            } else if (play.user1Choice === "O" && play.user2Choice === "X") {
+              console.log("관전자 점수집계 0,x");
+              document.querySelector("#div-your-playground").innerHTML = "<span style='color:red'>" + (play.user1Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 0;
+              document.querySelector("#div-my-playground").innerHTML = "<span style='color:red'>" + (play.user2Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 5;
+            } else if (play.user1Choice === "X" && play.user2Choice === "O") {
+              console.log("관전자 점수집계 x,o");
+              document.querySelector("#div-your-playground").innerHTML = "<span style='color:red'>" + (play.user1Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 5;
+              document.querySelector("#div-my-playground").innerHTML = "<span style='color:red'>" + (play.user2Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 0;
+            } else if (play.user1Choice === "X" && play.user2Choice === "X") {
+              console.log("관전자 점수집계 x,x");
+              document.querySelector("#div-your-playground").innerHTML = "<span style='color:red'>" + (play.user1Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 1;
+              document.querySelector("#div-my-playground").innerHTML = "<span style='color:red'>" + (play.user2Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + 1;
+            }
+          }
+        }
+
+        // 상대 선택시
+        if (myPlayerNo <= 2) {
+          if (play.playerNo !== myPlayerNo) {
+            document.querySelector("#h1-your-status").innerHTML = "<span style='color:red'>선택완료</span>";
+          }
+        }
+
+        // 나, 상대 모두 선택시
+        if (scoreArr[roundIdx].user1Choice !== "" && scoreArr[roundIdx].user2Choice !== "") {
+          // 점수계산
+          if (scoreArr[roundIdx].user1Choice === "O" && scoreArr[roundIdx].user2Choice === "O") {
+            scoreArr[roundIdx].user1Score = 3;
+            scoreArr[roundIdx].user2Score = 3;
+            console.log("점수:O,O", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          } else if (scoreArr[roundIdx].user1Choice === "O" && scoreArr[roundIdx].user2Choice === "X") {
+            scoreArr[roundIdx].user1Score = 0;
+            scoreArr[roundIdx].user2Score = 5;
+            console.log("점수:O,X", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          } else if (scoreArr[roundIdx].user1Choice === "X" && scoreArr[roundIdx].user2Choice === "O") {
+            scoreArr[roundIdx].user1Score = 5;
+            scoreArr[roundIdx].user2Score = 0;
+            console.log("점수:O,O", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          } else if (scoreArr[roundIdx].user1Choice === "X" && scoreArr[roundIdx].user2Choice === "X") {
+            scoreArr[roundIdx].user1Score = 1;
+            scoreArr[roundIdx].user2Score = 1;
+            console.log("점수:O,O", scoreArr[roundIdx].user1Choice, scoreArr[roundIdx].user2Choice);
+          }
+
+          // 점수표시
+          if (myPlayerNo === 1) {
+            document.querySelector("#div-your-playground").innerHTML =
+              "<span style='color:red'>" + (scoreArr[roundIdx].user2Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + scoreArr[roundIdx].user2Score;
+            document.querySelector("#div-my-playground").innerHTML =
+              "<span style='color:red'>" + (scoreArr[roundIdx].user1Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + scoreArr[roundIdx].user1Score;
+          } else if (myPlayerNo === 2) {
+            document.querySelector("#div-your-playground").innerHTML =
+              "<span style='color:red'>" + (scoreArr[roundIdx].user1Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + scoreArr[roundIdx].user1Score;
+            document.querySelector("#div-my-playground").innerHTML =
+              "<span style='color:red'>" + (scoreArr[roundIdx].user2Choice === "O" ? "협력" : "배신") + "</span>" + " 선택 - 점수:" + scoreArr[roundIdx].user2Score;
+          }
+
+          if (roundIdx >= gameOverIdx) {
+            // game over
+            var totalScoreUser1 = 0,
+              totalScoreUser2 = 0;
+            scoreArr.forEach(function (round) {
+              totalScoreUser1 += round.user1Score;
+              totalScoreUser2 += round.user2Score;
+            });
+
+            var timer3 = 3;
+            timerId = setInterval(function () {
+              document.querySelector("#div-center-playground").innerHTML = `GameOver! <span style='color:red'>${timer3}</span>초후 점수 공개`;
+              timer3--;
+              if (timer3 < 0) {
+                clearInterval(timerId);
+                socket.emit("game over", { totalScoreUser1, totalScoreUser2 });
+              }
+            }, 1000);
+          } else {
+            // go next round
+            console.log("다음라운드 진행 ", roundIdx);
+            roundIdx++;
+            var timer3 = 3;
+            timerId = setInterval(function () {
+              document.querySelector("#div-center-playground").innerHTML = `<span style='color:red'>${timer3}</span>초후 다음라운드 진행합니다.`;
+              timer3--;
+              if (timer3 < 0) {
+                clearInterval(timerId);
+                if (myPlayerNo <= 2) {
+                  document.querySelector("#h1-your-status").innerHTML = "<span style='color:blue'>선택중</span>";
+                }
+                socket.emit("next round", roundIdx);
+              }
+            }, 1000);
+          }
+        }
+        console.log("choice", scoreArr);
+      });
+
+      socket.on("next round", function (roundIdx) {
+        if (!scoreArr[roundIdx]) {
+          scoreArr.push({ idx: roundIdx, round: Number(roundIdx) + 1, user1Choice: "", user2Choice: "", user1Score: 0, user2Score: 0 });
+        }
+        document.querySelector("#div-your-playground").innerHTML = ``;
+        document.querySelector("#div-center-playground").innerHTML = "Round " + `<span style='color:blue'>${Number(roundIdx) + 1}</span>`;
+        document.querySelector("#div-my-playground").innerHTML = ``;
+        console.log("다음라운드:", scoreArr);
+        btnMyO.disabled = false;
+        btnMyX.disabled = false;
+      });
+
+      socket.on("game over", function (result) {
+        console.log(result);
+        let yourId = document.querySelector("#h1-your-id").innerHTML;
+        let myId = document.querySelector("#h1-my-id").innerHTML;
+
+        if (myPlayerNo === 1) {
+          document.querySelector("#div-your-playground").innerHTML = `최종점수:${result.totalScoreUser2}`;
+          document.querySelector("#div-my-playground").innerHTML = `최종점수:${result.totalScoreUser1}`;
+          if (result.totalScoreUser1 === result.totalScoreUser2) {
+            document.querySelector("#div-center-playground").innerHTML = "DRAW !!!";
+          } else if (result.totalScoreUser1 > result.totalScoreUser2) {
+            document.querySelector("#div-center-playground").innerHTML = "YOU WIN !!!";
+          } else {
+            document.querySelector("#div-center-playground").innerHTML = "YOU LOSE !!!";
+          }
+        } else if (myPlayerNo === 2) {
+          document.querySelector("#div-your-playground").innerHTML = `최종점수:${result.totalScoreUser1}`;
+          document.querySelector("#div-my-playground").innerHTML = `최종점수:${result.totalScoreUser2}`;
+          if (result.totalScoreUser1 === result.totalScoreUser2) {
+            document.querySelector("#div-center-playground").innerHTML = "DRAW !!!";
+          } else if (result.totalScoreUser1 < result.totalScoreUser2) {
+            document.querySelector("#div-center-playground").innerHTML = "YOU WIN !!!";
+          } else {
+            document.querySelector("#div-center-playground").innerHTML = "YOU LOSE !!!";
+          }
+        } else if (myPlayerNo > 2) {
+          document.querySelector("#div-your-playground").innerHTML = `최종점수:${result.totalScoreUser1}`;
+          document.querySelector("#div-my-playground").innerHTML = `최종점수:${result.totalScoreUser2}`;
+          if (result.totalScoreUser1 === result.totalScoreUser2) {
+            document.querySelector("#div-center-playground").innerHTML = "DRAW !!!";
+          } else if (result.totalScoreUser1 > result.totalScoreUser2) {
+            document.querySelector("#div-center-playground").innerHTML = `${yourId} WIN !!!`;
+          } else {
+            document.querySelector("#div-center-playground").innerHTML = `${myId} WIN !!!`;
+          }
+        }
+
+        // 5초대기 후 10초 타이머
+        // setTimeout(function () {
+        //   document.querySelector("#div-your-playground").innerHTML = ``;
+        //   document.querySelector("#div-my-playground").innerHTML = ``;
+        //   var timer10 = 10;
+        //   var restartTimerID = setInterval(function () {
+        //     document.querySelector("#div-center-playground").innerHTML = `<span style='color:red'>${timer10}</span>초후 로그인 화면으로 이동합니다.`;
+        //     timer10--;
+        //     if (timer10 < 0) {
+        //       clearInterval(restartTimerID);
+        //       socket.emit("leave", { nickName: myNickName });
+        //     }
+        //   }, 1000);
+        // }, 5000);
+        goLoginTimer();
+        //game over
+      });
+
+      // 나가기(게임초기화 - 모든 유저를 로그인 화면으로 이동)
+      socket.on("leave", function (msg) {
+        console.log("leave", msg);
+        goLogin();
+      });
+
+      // 퇴장처리
+      socket.on("user logout", function (msg) {
+        console.log("user logout", msg);
+        // 선수퇴장시
+        let totalScoreUser1 = 0;
+        let totalScoreUser2 = 0;
+        if (msg.playerNo === 1 || msg.playerNo === 2) {
+          // 중간점수 계산
+          scoreArr.forEach(function (round) {
+            totalScoreUser1 += round.user1Score;
+            totalScoreUser2 += round.user2Score;
+          });
+        }
+
+        if (msg.playerNo === 1) {
+          if (myPlayerNo === 1 || msg.myPlayerNo === 2) {
+            document.querySelector("#div-your-playground").innerHTML = "선수퇴장 - 점수:0";
+            document.querySelector("#div-center-playground").innerHTML = "GameOver! 상대퇴장 기권승";
+            document.querySelector("#div-my-playground").innerHTML = `기권승 - 점수:${totalScoreUser2}`;
+          } else {
+            document.querySelector("#div-your-playground").innerHTML = "선수퇴장 - 점수:0";
+            document.querySelector("#div-center-playground").innerHTML = "GameOver! 상대퇴장 기권승";
+            document.querySelector("#div-my-playground").innerHTML = `기권승 - 점수:${totalScoreUser2}`;
+          }
+        } else if (msg.playerNo === 2) {
+          if (myPlayerNo === 1 || msg.myPlayerNo === 2) {
+            document.querySelector("#div-your-playground").innerHTML = "선수퇴장 - 점수:0";
+            document.querySelector("#div-center-playground").innerHTML = "GameOver! 상대퇴장 기권승";
+            document.querySelector("#div-my-playground").innerHTML = `기권승 - 점수:${totalScoreUser1}`;
+          } else {
+            document.querySelector("#div-my-playground").innerHTML = "선수퇴장 - 점수:0";
+            document.querySelector("#div-center-playground").innerHTML = "GameOver! 상대퇴장 기권승";
+            document.querySelector("#div-your-playground").innerHTML = `기권승 - 점수:${totalScoreUser1}`;
+          }
+        }
+
+        goLoginTimer();
+      });
+
+      // 로그인 화면 이동전 타이머 : 5초대기 후 10초 타이머
+      function goLoginTimer() {
+        setTimeout(function () {
+          document.querySelector("#div-your-playground").innerHTML = ``;
+          document.querySelector("#div-my-playground").innerHTML = ``;
+          var timer10 = 10;
+          var restartTimerID = setInterval(function () {
+            document.querySelector("#div-center-playground").innerHTML = `<span style='color:red'>${timer10}</span>초후 로그인 화면으로 이동합니다.`;
+            timer10--;
+            if (timer10 < 0) {
+              clearInterval(restartTimerID);
+              socket.emit("leave", { nickName: myNickName });
+            }
+          }, 1000);
+        }, 5000);
+      }
+
+      function goLogin() {
+        // 점수 초기화
+        myNickName = "";
+        myPlayerNo = 0;
+        scoreArr = [{ idx: 0, round: 1, user1Choice: "", user2Choice: "", user1Score: 0, user2Score: 0 }];
+        roundIdx = 0; // 현재 라운드 idx
+
+        // 로그인 화면으로 이동
+        document.querySelector("#div-join").setAttribute("style", "visibility: visible;");
+        document.querySelector("#div-your-wrapper").setAttribute("style", "visibility: hidden;");
+        document.querySelector("#div-center-playground").innerHTML = "";
+        document.querySelector("#div-my-wrapper").setAttribute("style", "visibility: hidden;");
+        btnMyO.setAttribute("style", "visibility: hidden;");
+        btnMyX.setAttribute("style", "visibility: hidden;");
+      }
+    </script>
+  </body>
+</html>
