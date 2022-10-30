@@ -1,6 +1,7 @@
 const SocketIO = require("socket.io");
 module.exports = (server) => {
-  const io = SocketIO(server);
+  //const io = SocketIO(server);
+  const io = SocketIO(server, { path: "/socket.io/tit-for-tat/" });
 
   let playerNoIdx = 0;
 
