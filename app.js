@@ -15,4 +15,4 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Example app listening on port ${port}`);
 });
 
-mySocket(server); // 서버를 넘겨줌
+mySocket(server); // 서버를 넘겨줌!
