@@ -13,7 +13,7 @@
     <div id="div-my-wrapper"><div id="div-my-id"></div></div>
     <script>
       const socket = io();
-      let tempLoginNickName; // 로그인 시도 ID
+      let tempLoginId; // 로그인 시도 ID
       let myNIckName; // 정식 로그인 ID
       const divJoinWrapper = document.querySelector("#div-join-wrapper");
       const inputJoin = document.querySelector("#input-join");
@@ -29,20 +29,20 @@
           inputJoin.focus();
           return;
         }
-        tempLoginNickName = inputJoin.value;
-        socket.emit("join user", tempLoginNickName);
+        tempLoginId = inputJoin.value;
+        socket.emit("join user", tempLoginId);
         //document.querySelector("#div-join").setAttribute("style", "display:none");
       });
 
       socket.on("join user", function (msg) {
         console.log("join user", msg);
-        if (tempLoginNickName === msg.nickName) {
+        if (tempLoginId === msg.nickName) {
           if (msg.isLoginOk) {
-            myNIckName = tempLoginNickName;
-            tempLoginNickName = null;
+            myNIckName = tempLoginId;
+            tempLoginId = null;
             divJoinWrapper.setAttribute("style", "visibility:hidden;");
           } else {
-            alert(tempLoginNickName + "(은/는) 이미 사용중인 이름 입니다. 다른 이름으로 로그인해 주세요.");
+            alert(tempLoginId + "(은/는) 이미 사용중인 이름 입니다. 다른 이름으로 로그인해 주세요.");
             return;
           }
         }

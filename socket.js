@@ -9,7 +9,7 @@ module.exports = (server) => {
 
     /**
      * on join user
-     * @param tempNickName : 입력한 로그인 아이디
+     * @param tempLoginId : 입력한 로그인 아이디
      * @return
      */
     socket.on("join user", (tempLoginId) => {
@@ -19,7 +19,7 @@ module.exports = (server) => {
 
     /**
      * 로그인 처리 : 아이디 중복체크 후 없으면 로그인 처리
-     * @param tempNickName : 입력한 로그인 아이디
+     * @param tempLoginId : 입력한 로그인 아이디
      * @return
      */
     async function joinProcess(tempLoginId) {
