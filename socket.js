@@ -24,6 +24,7 @@ module.exports = (server) => {
      */
     async function joinProcess(tempLoginId) {
       const sockets = await io.fetchSockets();
+      const loginUserList = [];
 
       // 닉네임 중복체크
       for (const _socket of sockets) {
@@ -36,12 +37,12 @@ module.exports = (server) => {
       // 중복없을때
       socket.data.nickName = tempLoginId;
       socket.data.playerNo = ++playerNoIdx;
-      io.emit("join user", { isLoginOk: true, errMsg: "LOGIN_OK", nickName: socket.data.nickName, playerNo: socket.data.playerNo }); // 중복없음
-
-      // 현재 로그인 된 유저목록 - debug 용 - 확인후 주석처리 할것
       for (const _socket of sockets) {
-        console.log("현재 로그인 유저목록:", _socket.data);
+        if (_socket.data.playerNo > 0) {
+          loginUserList.push({ playerNo: _socket.data.playerNo, nickName: _socket.data.nickName });
+        }
       }
+      io.emit("join user", { isLoginOk: true, errMsg: "LOGIN_OK", nickName: socket.data.nickName, playerNo: socket.data.playerNo, allUserCount: io.of("/").sockets.size, loginUserList }); // 중복없음
     }
 
     socket.on("choice", (msg) => {

@@ -11,10 +11,19 @@
     <div id="div-join-wrapper"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">Join</button></div>
     <div id="div-your-wrapper"><div id="div-your-id"></div></div>
     <div id="div-my-wrapper"><div id="div-my-id"></div></div>
+    <div id="div-etc-wrapper">
+      <div id="div-etc-ids"></div>
+      <div id="div-etc-user-count"></div>
+    </div>
     <script>
       const socket = io();
       let tempLoginId; // 로그인 시도 ID
-      let myNIckName; // 정식 로그인 ID
+
+      let allPlayerArr = [];
+      let myInfo = {};
+      let player1Info = {};
+      let player2Info = {};
+
       const divJoinWrapper = document.querySelector("#div-join-wrapper");
       const inputJoin = document.querySelector("#input-join");
       const btnJoin = document.querySelector("#btn-join");
@@ -22,6 +31,9 @@
       const divYourId = document.querySelector("#div-your-id");
       const divMyWrapper = document.querySelector("#div-my-wrapper");
       const divMyId = document.querySelector("#div-my-id");
+      const divEtcWrapper = document.querySelector("#div-etc-wrapper");
+      const divEtcIds = document.querySelector("#div-etc-ids");
+      const divEtcUserCount = document.querySelector("#div-etc-user-count");
 
       btnJoin.addEventListener("click", function (e) {
         if (inputJoin.value.trim() === "" || inputJoin.value == null) {
@@ -34,18 +46,63 @@
         //document.querySelector("#div-join").setAttribute("style", "display:none");
       });
 
-      socket.on("join user", function (msg) {
-        console.log("join user", msg);
-        if (tempLoginId === msg.nickName) {
-          if (msg.isLoginOk) {
-            myNIckName = tempLoginId;
-            tempLoginId = null;
+      socket.on("join user", function (serverMsg) {
+        console.log("join user", serverMsg);
+
+        /*----- 닉네임 중복체크 -----*/
+        if (tempLoginId === serverMsg.nickName) {
+          if (serverMsg.isLoginOk) {
+            // 정상
             divJoinWrapper.setAttribute("style", "visibility:hidden;");
+            divYourWrapper.setAttribute("style", "visibility:visible;");
+            divMyWrapper.setAttribute("style", "visibility:visible;");
+            myInfo.nickName = serverMsg.nickName;
+            myInfo.playerNo = serverMsg.playerNo;
+            tempLoginId = null;
           } else {
+            // 중복
+            divJoinWrapper.setAttribute("style", "visibility:visible;");
+            divYourWrapper.setAttribute("style", "visibility:hidden;");
+            divMyWrapper.setAttribute("style", "visibility:hidden;");
             alert(tempLoginId + "(은/는) 이미 사용중인 이름 입니다. 다른 이름으로 로그인해 주세요.");
             return;
           }
         }
+
+        if (!serverMsg.isLoginOk) return; // 비정상 로그인건은 무조건 리턴
+
+        /*----- 중복없을때 정상진행 -----*/
+
+        allPlayerArr = serverMsg.loginUserList;
+        let tempP1 = serverMsg.loginUserList.filter((v) => v.playerNo === 1);
+        let tempP2 = serverMsg.loginUserList.filter((v) => v.playerNo === 2);
+        if (tempP1.length > 0) player1Info = tempP1[0];
+        if (tempP2.length > 0) player2Info = tempP2[0];
+
+        // console.log("유저목록:allPlayerArr", allPlayerArr);
+        // console.log("유저목록:player1Info", player1Info);
+        // console.log("유저목록:player2Info", player2Info);
+
+        if (myInfo.playerNo === 1) {
+          // 내가 1번 선수일때
+          divYourId.innerHTML = player2Info.nickName || "대기중";
+          divMyId.innerHTML = myInfo.nickName;
+        } else if (myInfo.playerNo === 2) {
+          // 내가 2번 선수일때
+          divYourId.innerHTML = player1Info.nickName;
+          divMyId.innerHTML = myInfo.nickName;
+        } else if (myInfo.playerNo > 2) {
+          // 내가 관전일때
+          divYourId.innerHTML = player1Info.nickName;
+          divMyId.innerHTML = player2Info.nickName;
+          divEtcIds.innerHTML = "";
+          allPlayerArr.forEach((elm) => {
+            if (elm.playerNo > 2) {
+              divEtcIds.insertAdjacentHTML("afterbegin", elm.nickName + " ");
+            }
+          });
+        }
+        divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
       });
     </script>
   </body>
