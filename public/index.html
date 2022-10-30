@@ -16,18 +16,9 @@
       <div id="div-etc-user-count"></div>
     </div>
     <script>
-      const socket = io.connect({
-        //프론트랑 서버랑 연결할 때는 이렇게 하면됨. / io는 위의 /socket.io/~.js에서 제공해주는거임.
-        path: "/socket.io/tit-for-tat/", //socket.js의 path와 일치시켜주면 된다.
+      //const socket = io();
+      const socket = io.connect({ path: "/socket.io/tit-for-tat/", transports: ["websocket"] });
 
-        //왜 이번엔 io.connect 부분에 http를 사용했을까? -> websocket을 지원하지 않는 브라우저도 있기 때문에 먼저 폴링을 해보고 websocket이 가능하면 그때 변환한다.
-        transports: ["websocket"], // 그 방법이 싫고 바로 websocket으로 하고 싶다면 이 문장을 작성해주면 됨.(폴링 하지 않음.)
-      });
-      //프론트랑 서버랑 연결할 때는 이렇게 하면됨. / io는 위의 /socket.io/~.js에서 제공해주는거임.
-      //path: "/myownpath/", //socket.js의 path와 일치시켜주면 된다.
-      //왜 이번엔 io.connect 부분에 http를 사용했을까? -> websocket을 지원하지 않는 브라우저도 있기 때문에 먼저 폴링을 해보고 websocket이 가능하면 그때 변환한다.
-      //transports: ["websocket"], // 그 방법이 싫고 바로 websocket으로 하고 싶다면 이 문장을 작성해주면 됨.(폴링 하지 않음.)
-      //});
       let tempLoginId; // 로그인 시도 ID
 
       let allPlayerArr = [];
