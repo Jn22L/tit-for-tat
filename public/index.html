@@ -49,7 +49,7 @@
 
       let tempLoginId; // 로그인 시도 ID
 
-      let allLoginPlayerArr = []; // 모든 로그인 유저목록(비로그인 제외) [{playerNo:1 , nickName:""}]
+      let loginUserList = []; // 로그인 유저목록(비로그인 제외) [{playerNo:1 , nickName:""}]
       let myInfo = { isLoginOk: false, isPlayer: false, nickName: "", playerNo: 0 };
       let player1Info = { nickName: "", playerNo: 1 };
       let player2Info = { nickName: "", playerNo: 2 };
@@ -81,6 +81,14 @@
       /************************************************************************
        * Local Event List
        ***********************************************************************/
+      // 닉네임 엔터
+      inputJoin.addEventListener("keyup", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          btnJoin.click();
+        }
+      });
+
       // 로그인 클릭
       btnJoin.addEventListener("click", function (e) {
         if (inputJoin.value.trim() === "" || inputJoin.value == null) {
@@ -143,16 +151,22 @@
        ***********************************************************************/
       // 비로그인 접속
       socket.on("connect user", function (serverMsg) {
-        renderLayout(serverMsg);
+        inputJoin.focus();
+        renderPlayerLayout(serverMsg.loginUserList);
+        renderUserCount(serverMsg); // 접속유저수
       });
 
       // 로그 아웃
       socket.on("user logout", function (serverMsg) {
-        renderLayout(serverMsg);
+        console.log("user logout");
+        renderPlayerLayout(serverMsg.loginUserList);
+        renderUserCount(serverMsg); // 접속유저수
       });
 
       // 로그인
       socket.on("join user", function (serverMsg) {
+        console.log("join user", serverMsg);
+
         /*----- 닉네임 중복체크 -----*/
         if (tempLoginId === serverMsg.nickName) {
           if (serverMsg.isLoginOk) {
@@ -167,18 +181,21 @@
             // 중복
             divJoinWrapper.setAttribute("style", "display:block;");
             alert(tempLoginId + "(은/는) 이미 사용중인 이름 입니다. 다른 이름으로 로그인해 주세요.");
+            inputJoin.value = "";
             return;
           }
         }
 
         if (!serverMsg.isLoginOk) return; // 비로그인 return
 
-        /*----- 중복없을때 정상진행 -----*/
-        renderLayout(serverMsg); // 화면변경:선수배치
+        /*----- 중복없는 유저 로그인시 -----*/
+        renderPlayerLayout(serverMsg.loginUserList); // 화면변경:선수배치
+        renderUserCount(serverMsg); // 접속유저수
       });
 
       // 게임 참여
       socket.on("enter game", function (serverMsg) {
+        console.log("enter game");
         if (myInfo.nickName === serverMsg.nickName) {
           if (serverMsg.isPlayer) {
             myInfo.isPlayer = true;
@@ -190,18 +207,19 @@
             alert("Fail to join the game.");
           }
         }
-        renderLayout(serverMsg); // 화면변경:선수배치
+        renderPlayerLayout(serverMsg.loginUserList); // 선수배치(선수1,선수2,관전목록) rendering
       });
 
       // 게임진행
       socket.on("play game", function (serverMsg) {
+        console.log("play game");
         playResultInfo = serverMsg; // 게임결과수신
 
         // 다음라운드 시작시 버튼 활성화
         if (playResultInfo.round < playResultInfo.nextRound) {
           // 라운드 점수표시 - temp
           var liTemp = document.createElement("li");
-          liTemp.innerHTML = `${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} vs ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+          liTemp.innerHTML = `Round ${playResultInfo.round} : ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
           ulScoreList.appendChild(liTemp);
 
           // 선수만 버튼 활성
@@ -216,17 +234,16 @@
        * function list
        ***********************************************************************/
       /**
-       * 화면그리기
-       * @param loginUserList: 로그인 유저목록
+       * 선수배치(선수1,선수2,관전목록) rendering
+       * @param pLoginUserList: 로그인 유저목록
        * @return
        */
-      function renderLayout(serverMsg) {
-        console.log("자리배치:화면그리기 loginUserList", serverMsg.loginUserList);
+      function renderPlayerLayout(pLoginUserList) {
         console.log("자리배치:화면그리기 myInfo", myInfo);
 
         /* glable setting list
            - data
-           allLoginPlayerArr // 로그인한 전체유저 목록
+           loginUserList // 로그인한 전체유저 목록
            player1Info       // player1 정보
            player2Info       // player2 정보
 
@@ -238,8 +255,8 @@
         */
         player1Info = {};
         player2Info = {};
-        allLoginPlayerArr = serverMsg.loginUserList;
-        allLoginPlayerArr.forEach(function (elm) {
+        loginUserList = pLoginUserList;
+        loginUserList.forEach(function (elm) {
           if (elm.playerNo === 1) {
             player1Info = elm;
           } else if (elm.playerNo === 2) {
@@ -280,7 +297,7 @@
 
         // 관전목록(항상갱신)
         divEtcIds.innerHTML = "";
-        allLoginPlayerArr.forEach((elm) => {
+        loginUserList.forEach((elm) => {
           if (elm.playerNo > 2) {
             divEtcIds.insertAdjacentHTML("afterbegin", elm.nickName + " ");
           }
@@ -291,9 +308,6 @@
           btnMyO.disabled = true;
           btnMyX.disabled = true;
         }
-
-        // 접속유저수 표시
-        renderUserCount(serverMsg);
       }
 
       /**
