@@ -28,6 +28,17 @@ module.exports = (server) => {
     });
 
     /**
+     * on disconnect
+     * @param nickName : login nickName
+     * @return
+     */
+    socket.on("disconnect", () => {
+      console.log("disconnnect", socket.data);
+      disconnectProcess();
+      //socket.broadcast.emit("user logout", socket.data);
+    });
+
+    /**
      * 로그인 처리 : 아이디 중복체크 후 없으면 로그인 처리
      * @param tempLoginId : 입력한 로그인 아이디
      * @return
@@ -92,6 +103,25 @@ module.exports = (server) => {
       io.emit("enter game", { isPlayer, nickName: socket.data.nickName, playerNo: socket.data.playerNo, loginUserList });
     }
 
+    /**
+     * 로그아웃 처리 : 로그인 유저목록 emit -> client 에서 선수배치(관전목록) 갱신
+     * @param nickName
+     * @return
+     */
+    async function disconnectProcess() {
+      const sockets = await io.fetchSockets();
+
+      // 로그인 유저목록
+      const loginUserList = [];
+      for (const _socket of sockets) {
+        if (_socket.data.playerNo > 0) {
+          loginUserList.push({ nickName: _socket.data.nickName, playerNo: _socket.data.playerNo });
+        }
+      }
+
+      socket.broadcast.emit("user logout", { logoutUser: socket.data, loginUserList });
+    }
+
     socket.on("choice", (msg) => {
       console.log("choice", msg);
       io.emit("choice", msg);
@@ -103,11 +133,6 @@ module.exports = (server) => {
 
     socket.on("game over", (msg) => {
       io.emit("game over", msg);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("disconnnect", socket.data);
-      socket.broadcast.emit("user logout", socket.data);
     });
   });
 };

@@ -118,34 +118,7 @@
         if (!serverMsg.isLoginOk) return; // 비정상 로그인건은 무조건 리턴
 
         /*----- 중복없을때 정상진행 -----*/
-
-        // console.log("유저목록:allPlayerArr", allPlayerArr);
-        // console.log("유저목록:player1Info", player1Info);
-        // console.log("유저목록:player2Info", player2Info);
         setPlayersLayout(serverMsg.loginUserList); // 화면변경:선수배치
-        /*
-        if (myInfo.playerNo === 1) {
-          // 내가 1번 선수일때
-          divYourId.innerHTML = player2Info.nickName || "대기중";
-          divMyId.innerHTML = myInfo.nickName;
-        } else if (myInfo.playerNo === 2) {
-          // 내가 2번 선수일때
-          divYourId.innerHTML = player1Info.nickName;
-          divMyId.innerHTML = myInfo.nickName;
-        } else if (myInfo.playerNo > 2) {
-          // 내가 관전일때
-          divYourId.innerHTML = player1Info.nickName;
-          divMyId.innerHTML = player2Info.nickName;
-          divEtcIds.innerHTML = "";
-          allLoginPlayerArr.forEach((elm) => {
-            if (elm.playerNo > 2) {
-              divEtcIds.insertAdjacentHTML("afterbegin", elm.nickName + " ");
-            }
-          });
-        }
-        */
-        //divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
-        //divEtcUserCount.innerHTML = `${serverMsg.allUserCount} ${serverMsg.loginUserList.length} ${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
       });
 
       // 게임 참여
@@ -162,6 +135,23 @@
             alert("Fail to join the game.");
           }
         }
+        setPlayersLayout(serverMsg.loginUserList); // 화면변경:선수배치
+      });
+
+      // 로그 아웃
+      socket.on("user logout", function (serverMsg) {
+        console.log("user logout:", serverMsg);
+        // if (myInfo.nickName === serverMsg.nickName) {
+        //   if (serverMsg.isPlayer) {
+        //     myInfo.isPlayer = true;
+        //     myInfo.playerNo = serverMsg.playerNo;
+        //     alert("Success to join the game.");
+        //   } else {
+        //     myInfo.isPlayer = false;
+        //     myInfo.playerNo = serverMsg.playerNo;
+        //     alert("Fail to join the game.");
+        //   }
+        // }
         setPlayersLayout(serverMsg.loginUserList); // 화면변경:선수배치
       });
       /************************************************************************
@@ -184,26 +174,38 @@
            divMyId : 내id
            divEtcIds : 관전id 목록
         */
-
+        player1Info = {};
+        player2Info = {};
         allLoginPlayerArr = loginUserList;
-        let tempP1 = loginUserList.filter((v) => v.playerNo === 1);
-        let tempP2 = loginUserList.filter((v) => v.playerNo === 2);
-        if (tempP1.length > 0) player1Info = tempP1[0];
-        if (tempP2.length > 0) player2Info = tempP2[0];
+        allLoginPlayerArr.forEach(function (elm) {
+          if (elm.playerNo === 1) {
+            player1Info = elm;
+          } else if (elm.playerNo === 2) {
+            player2Info = elm;
+          }
+        });
+        //tempP1 = allLoginPlayerArr.filter((v) => v.playerNo === 1);
+        //tempP2 = allLoginPlayerArr.filter((v) => v.playerNo === 2);
+        //if (tempP1.length > 0) player1Info = tempP1[0];
+        //if (tempP2.length > 0) player2Info = tempP2[0];
+
+        console.log("선수배치:allLoginPlayerArr", allLoginPlayerArr);
+        console.log("선수배치:player1", player1Info);
+        console.log("선수배치:player2", player2Info);
 
         // 선수배치
         if (myInfo.playerNo === 1) {
           // 내가 1번 선수일때
-          divYourId.innerHTML = player2Info.nickName || "대기중";
+          divYourId.innerHTML = player2Info.nickName || "게임 대기중";
           divMyId.innerHTML = myInfo.nickName;
         } else if (myInfo.playerNo === 2) {
           // 내가 2번 선수일때
-          divYourId.innerHTML = player1Info.nickName;
+          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
           divMyId.innerHTML = myInfo.nickName;
         } else if (myInfo.playerNo > 2) {
           // 내가 관전일때
-          divYourId.innerHTML = player1Info.nickName;
-          divMyId.innerHTML = player2Info.nickName;
+          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
+          divMyId.innerHTML = player2Info.nickName || "게임 대기중";
         }
 
         // 관전목록(항상갱신)
@@ -213,6 +215,7 @@
             divEtcIds.insertAdjacentHTML("afterbegin", elm.nickName + " ");
           }
         });
+        //divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
       }
     </script>
   </body>
