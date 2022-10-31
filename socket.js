@@ -8,6 +8,8 @@ module.exports = (server) => {
   io.on("connection", (socket) => {
     console.log("connection", socket.data);
 
+    connectProcess(); // 최초 연결시, 로그인 유저목록 전송
+
     /**
      * on join user
      * @param tempLoginId : temp id
@@ -84,6 +86,24 @@ module.exports = (server) => {
       disconnectProcess();
       //socket.broadcast.emit("user logout", socket.data);
     });
+
+    /**
+     * 최초 비로그인 접속처리 - 현재 접속중인 유저목록 전송
+     * @param
+     * @return
+     */
+    async function connectProcess() {
+      const sockets = await io.fetchSockets();
+
+      // 로그인 유저목록
+      const loginUserList = [];
+      for (const _socket of sockets) {
+        if (_socket.data.playerNo > 0) {
+          loginUserList.push({ nickName: _socket.data.nickName, playerNo: _socket.data.playerNo });
+        }
+      }
+      io.emit("connect user", { isLoginOk: false, allUserCount: io.of("/").sockets.size, loginUserList });
+    }
 
     /**
      * 로그인 처리 : 아이디 중복체크 후 없으면 로그인 처리
@@ -166,7 +186,7 @@ module.exports = (server) => {
         }
       }
 
-      socket.broadcast.emit("user logout", { logoutUser: socket.data, loginUserList });
+      socket.broadcast.emit("user logout", { logoutUser: socket.data, allUserCount: io.of("/").sockets.size, loginUserList });
     }
 
     socket.on("choice", (msg) => {
