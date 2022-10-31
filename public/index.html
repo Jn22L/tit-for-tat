@@ -21,7 +21,7 @@
   <body>
     <div id="div-join-wrapper"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">J</button></div>
     <div id="div-your-wrapper">
-      <label>temp(YOU):</label>
+      <label>U:</label>
       <div id="div-your-id"></div>
       <div id="div-your-status"></div>
     </div>
@@ -32,16 +32,17 @@
       <div id="div-playground-my"></div>
     </div>
     <div id="div-my-wrapper">
-      <label>temp(MY):</label>
+      <label>I:</label>
       <div id="div-my-id"></div>
       <button id="btn-my-o">O</button>
       <button id="btn-my-x">X</button>
     </div>
     <div id="div-etc-wrapper">
-      <label>temp(ETC):</label>
+      <label>E:</label>
       <div id="div-etc-ids"></div>
       <div id="div-etc-user-count"></div>
       <ul id="ul-score-list"></ul>
+      <ul id="ul-score-total"></ul>
     </div>
     <script>
       //const socket = io();
@@ -53,7 +54,7 @@
       let myInfo = { isLoginOk: false, isPlayer: false, nickName: "", playerNo: 0 };
       let player1Info = { nickName: "", playerNo: 1 };
       let player2Info = { nickName: "", playerNo: 2 };
-      let playResultInfo = { round: 1, nextRound: 1, isP1End: false, p1Choice: "", p1Score: 0, isP2End: false, p2Choice: "", p2Score: 0 }; // 개별선택취합결과
+      let playResultInfo = { round: 1, nextRound: 1, isP1End: false, p1Choice: "", p1Score: 0, p1TotScore: 0, isP2End: false, p2Choice: "", p2Score: 0, p2TotScore: 0 }; // 개별선택취합결과
 
       const divJoinWrapper = document.querySelector("#div-join-wrapper");
       const inputJoin = document.querySelector("#input-join");
@@ -77,6 +78,7 @@
       const divEtcIds = document.querySelector("#div-etc-ids");
       const divEtcUserCount = document.querySelector("#div-etc-user-count");
       const ulScoreList = document.querySelector("#ul-score-list");
+      const ulScoreTotal = document.querySelector("#ul-score-total");
 
       /************************************************************************
        * Local Event List
@@ -212,7 +214,7 @@
 
       // 게임진행
       socket.on("play game", function (serverMsg) {
-        console.log("play game");
+        console.log("play game", serverMsg);
         playResultInfo = serverMsg; // 게임결과수신
 
         // 다음라운드 시작시 버튼 활성화
@@ -221,6 +223,11 @@
           var liTemp = document.createElement("li");
           liTemp.innerHTML = `Round ${playResultInfo.round} : ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
           ulScoreList.appendChild(liTemp);
+
+          var liTotalTemp = `<li>--------------------------------------------</li>
+                             <li>Total Round ${playResultInfo.round} End : ${playResultInfo.p1NickName}  ${playResultInfo.p1TotScore} - ${playResultInfo.p2NickName} ${playResultInfo.p2TotScore}</li>
+                             <li>--------------------------------------------</li>`;
+          ulScoreTotal.innerHTML = liTotalTemp;
 
           // 선수만 버튼 활성
           if (myInfo.isPlayer) {
@@ -267,14 +274,17 @@
         // 선수배치
         if (myInfo.playerNo === 1) {
           // 내가 1번 선수일때
-          divYourId.innerHTML = player2Info.nickName || "게임 대기중";
+          //divYourId.innerHTML = player2Info.nickName || "게임 대기중";
+          divYourId.innerHTML = player2Info.nickName || "Ready";
           divMyId.innerHTML = myInfo.nickName;
         } else if (myInfo.playerNo === 2) {
           // 내가 2번 선수일때
+          //divYourId.innerHTML = player1Info.nickName || "게임 대기중";
           divYourId.innerHTML = player1Info.nickName || "게임 대기중";
           divMyId.innerHTML = myInfo.nickName;
         } else {
           // 내가 관전일때
+          //divYourId.innerHTML = player1Info.nickName || "게임 대기중";
           divYourId.innerHTML = player1Info.nickName || "게임 대기중";
           divMyId.innerHTML = player2Info.nickName || "게임 대기중";
         }

@@ -3,7 +3,10 @@ module.exports = (server) => {
   //const io = SocketIO(server);
   const io = SocketIO(server, { path: "/socket.io/tit-for-tat/" });
   const playResultInit = { isP1End: false, p1NickName: "", p1Choice: "", p1Score: 0, isP2End: false, p2NickName: "", p2Choice: "", p2Score: 0 }; // 결과 초기화용
+
   let playResultInfo = {}; // 이번라운드결과
+  let p1TotScore = 0; // p1 총점
+  let p2TotScore = 0; // p2 총점
 
   io.on("connection", (socket) => {
     console.log("connection", socket.data);
@@ -66,10 +69,19 @@ module.exports = (server) => {
           playResultInfo.p1Score = 1;
           playResultInfo.p2Score = 1;
         }
-        playResultInfo.nextRound = playInfo.round + 1; // 다음라운드
+
+        // 총점계산
+        p1TotScore += playResultInfo.p1Score;
+        p2TotScore += playResultInfo.p2Score;
+        playResultInfo.p1TotScore = p1TotScore;
+        playResultInfo.p2TotScore = p2TotScore;
+
+        // 다음라운드
+        playResultInfo.nextRound = playInfo.round + 1;
+
         console.log("게임결과:", playResultInfo);
         io.emit("play game", playResultInfo);
-        playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound 만 제외하고 클리어
+        playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
         console.log("게임결과 클리어:", playResultInfo);
       } else {
         io.emit("play game", playResultInfo);
