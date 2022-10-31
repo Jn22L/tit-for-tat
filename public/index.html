@@ -5,13 +5,32 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="/socket.io/tit-for-tat/socket.io.js"></script>
-    <title>Tit-for-Tat V3</title>
+    <style>
+      #div-your-wrapper {
+        display: flex;
+      }
+      #div-my-wrapper {
+        display: flex;
+      }
+      #div-etc-wrapper {
+        display: flex;
+      }
+    </style>
+    <title>tftv3</title>
   </head>
   <body>
-    <div id="div-join-wrapper"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">Join</button></div>
-    <div id="div-your-wrapper"><div id="div-your-id"></div></div>
-    <div id="div-my-wrapper"><div id="div-my-id"></div></div>
+    <div id="div-join-wrapper"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">J</button></div>
+    <div id="div-your-wrapper">
+      <label>temp(YOU):</label>
+      <div id="div-your-id"></div>
+    </div>
+    <div id="div-playground-wrapper"><button id="btn-enter-game">TEST</button></div>
+    <div id="div-my-wrapper">
+      <label>temp(MY):</label>
+      <div id="div-my-id"></div>
+    </div>
     <div id="div-etc-wrapper">
+      <label>temp(ETC):</label>
       <div id="div-etc-ids"></div>
       <div id="div-etc-user-count"></div>
     </div>
@@ -21,22 +40,28 @@
 
       let tempLoginId; // 로그인 시도 ID
 
-      let allPlayerArr = [];
-      let myInfo = {};
-      let player1Info = {};
-      let player2Info = {};
+      let allLoginPlayerArr = []; // 모든 로그인 유저목록(비로그인 제외) [{playerNo:1 , nickName:""}]
+      let myInfo = { isLoginOk: false, isPlayer: false, nickName: "", playerNo: 0 };
+      let player1Info = { nickName: "" };
+      let player2Info = { nickName: "" };
 
       const divJoinWrapper = document.querySelector("#div-join-wrapper");
       const inputJoin = document.querySelector("#input-join");
       const btnJoin = document.querySelector("#btn-join");
       const divYourWrapper = document.querySelector("#div-your-wrapper");
       const divYourId = document.querySelector("#div-your-id");
+      const divPlaygroundWrapper = document.querySelector("#div-playground-wrapper");
+      const btnEnterGame = document.querySelector("#btn-enter-game");
       const divMyWrapper = document.querySelector("#div-my-wrapper");
       const divMyId = document.querySelector("#div-my-id");
       const divEtcWrapper = document.querySelector("#div-etc-wrapper");
       const divEtcIds = document.querySelector("#div-etc-ids");
       const divEtcUserCount = document.querySelector("#div-etc-user-count");
 
+      /************************************************************************
+       * Local Event List
+       ***********************************************************************/
+      // 로그인 클릭
       btnJoin.addEventListener("click", function (e) {
         if (inputJoin.value.trim() === "" || inputJoin.value == null) {
           alert("please enter name");
@@ -45,9 +70,25 @@
         }
         tempLoginId = inputJoin.value;
         socket.emit("join user", tempLoginId);
-        //document.querySelector("#div-join").setAttribute("style", "display:none");
       });
 
+      // 게임참여 클릭
+      btnEnterGame.addEventListener("click", function (e) {
+        if (!myInfo.isLoginOk) {
+          alert("not login user");
+          return;
+        }
+        if (myInfo.isPlayer) {
+          alert("already in the game");
+          return;
+        }
+        socket.emit("enter game", myInfo.nickName);
+      });
+
+      /************************************************************************
+       * Server Event List
+       ***********************************************************************/
+      // 로그인
       socket.on("join user", function (serverMsg) {
         console.log("join user", serverMsg);
 
@@ -58,6 +99,9 @@
             divJoinWrapper.setAttribute("style", "visibility:hidden;");
             divYourWrapper.setAttribute("style", "visibility:visible;");
             divMyWrapper.setAttribute("style", "visibility:visible;");
+            console.log("myInfo:", myInfo);
+            myInfo.isLoginOk = serverMsg.isLoginOk;
+            myInfo.isPlayer = false;
             myInfo.nickName = serverMsg.nickName;
             myInfo.playerNo = serverMsg.playerNo;
             tempLoginId = null;
@@ -75,16 +119,11 @@
 
         /*----- 중복없을때 정상진행 -----*/
 
-        allPlayerArr = serverMsg.loginUserList;
-        let tempP1 = serverMsg.loginUserList.filter((v) => v.playerNo === 1);
-        let tempP2 = serverMsg.loginUserList.filter((v) => v.playerNo === 2);
-        if (tempP1.length > 0) player1Info = tempP1[0];
-        if (tempP2.length > 0) player2Info = tempP2[0];
-
         // console.log("유저목록:allPlayerArr", allPlayerArr);
         // console.log("유저목록:player1Info", player1Info);
         // console.log("유저목록:player2Info", player2Info);
-
+        setPlayersLayout(serverMsg.loginUserList); // 화면변경:선수배치
+        /*
         if (myInfo.playerNo === 1) {
           // 내가 1번 선수일때
           divYourId.innerHTML = player2Info.nickName || "대기중";
@@ -98,14 +137,83 @@
           divYourId.innerHTML = player1Info.nickName;
           divMyId.innerHTML = player2Info.nickName;
           divEtcIds.innerHTML = "";
-          allPlayerArr.forEach((elm) => {
+          allLoginPlayerArr.forEach((elm) => {
             if (elm.playerNo > 2) {
               divEtcIds.insertAdjacentHTML("afterbegin", elm.nickName + " ");
             }
           });
         }
-        divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
+        */
+        //divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
+        //divEtcUserCount.innerHTML = `${serverMsg.allUserCount} ${serverMsg.loginUserList.length} ${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
       });
+
+      // 게임 참여
+      socket.on("enter game", function (serverMsg) {
+        console.log("enter game:", serverMsg);
+        if (myInfo.nickName === serverMsg.nickName) {
+          if (serverMsg.isPlayer) {
+            myInfo.isPlayer = true;
+            myInfo.playerNo = serverMsg.playerNo;
+            alert("Success to join the game.");
+          } else {
+            myInfo.isPlayer = false;
+            myInfo.playerNo = serverMsg.playerNo;
+            alert("Fail to join the game.");
+          }
+        }
+        setPlayersLayout(serverMsg.loginUserList); // 화면변경:선수배치
+      });
+      /************************************************************************
+       * function list
+       ***********************************************************************/
+      /**
+       * 선수자리배치(화면변경)
+       * @param loginUserList: 로그인 유저목록
+       * @return
+       */
+      function setPlayersLayout(loginUserList) {
+        /* glable setting list
+           - data
+           allLoginPlayerArr
+           player1Info
+           player2Info
+
+           - screen
+           divYourId : 상대id
+           divMyId : 내id
+           divEtcIds : 관전id 목록
+        */
+
+        allLoginPlayerArr = loginUserList;
+        let tempP1 = loginUserList.filter((v) => v.playerNo === 1);
+        let tempP2 = loginUserList.filter((v) => v.playerNo === 2);
+        if (tempP1.length > 0) player1Info = tempP1[0];
+        if (tempP2.length > 0) player2Info = tempP2[0];
+
+        // 선수배치
+        if (myInfo.playerNo === 1) {
+          // 내가 1번 선수일때
+          divYourId.innerHTML = player2Info.nickName || "대기중";
+          divMyId.innerHTML = myInfo.nickName;
+        } else if (myInfo.playerNo === 2) {
+          // 내가 2번 선수일때
+          divYourId.innerHTML = player1Info.nickName;
+          divMyId.innerHTML = myInfo.nickName;
+        } else if (myInfo.playerNo > 2) {
+          // 내가 관전일때
+          divYourId.innerHTML = player1Info.nickName;
+          divMyId.innerHTML = player2Info.nickName;
+        }
+
+        // 관전목록(항상갱신)
+        divEtcIds.innerHTML = "";
+        allLoginPlayerArr.forEach((elm) => {
+          if (elm.playerNo > 2) {
+            divEtcIds.insertAdjacentHTML("afterbegin", elm.nickName + " ");
+          }
+        });
+      }
     </script>
   </body>
 </html>
