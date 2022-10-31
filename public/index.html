@@ -186,11 +186,11 @@
           }
         }
 
-        if (!serverMsg.isLoginOk) return; // 비로그인 return
+        if (!serverMsg.isLoginOk) return; // 로그인 실패건 return : 화면변경없음
 
-        /*----- 중복없는 유저 로그인시 -----*/
+        /*----- 로그인 성공시 정상진행 -----*/
         renderPlayerLayout(serverMsg.loginUserList); // 화면변경:선수배치
-        renderUserCount(serverMsg); // 접속유저수
+        renderUserCount(serverMsg); // 접속유저수 표시
       });
 
       // 게임 참여
@@ -312,7 +312,7 @@
 
       /**
        * 접속유저수 표시
-       * @param
+       * @param object: { allUserCount: 비로그인포함 전체유저수, loginUserList: 로그인 유저목록 []  }
        * @return
        */
       function renderUserCount(serverMsg) {
