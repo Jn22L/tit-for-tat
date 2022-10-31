@@ -23,16 +23,25 @@
     <div id="div-your-wrapper">
       <label>temp(YOU):</label>
       <div id="div-your-id"></div>
+      <div id="div-your-status"></div>
     </div>
-    <div id="div-playground-wrapper"><button id="btn-enter-game">TEST</button></div>
+    <div id="div-playground-wrapper">
+      <button id="btn-playground-enter-game">TEST</button>
+      <div id="div-playground-your"></div>
+      <div id="div-playground-center"></div>
+      <div id="div-playground-my"></div>
+    </div>
     <div id="div-my-wrapper">
       <label>temp(MY):</label>
       <div id="div-my-id"></div>
+      <button id="btn-my-o">O</button>
+      <button id="btn-my-x">X</button>
     </div>
     <div id="div-etc-wrapper">
       <label>temp(ETC):</label>
       <div id="div-etc-ids"></div>
       <div id="div-etc-user-count"></div>
+      <ul id="ul-score-list"></ul>
     </div>
     <script>
       //const socket = io();
@@ -42,21 +51,32 @@
 
       let allLoginPlayerArr = []; // 모든 로그인 유저목록(비로그인 제외) [{playerNo:1 , nickName:""}]
       let myInfo = { isLoginOk: false, isPlayer: false, nickName: "", playerNo: 0 };
-      let player1Info = { nickName: "" };
-      let player2Info = { nickName: "" };
+      let player1Info = { nickName: "", playerNo: 1 };
+      let player2Info = { nickName: "", playerNo: 2 };
+      let playResultInfo = { round: 1, nextRound: 1, isP1End: false, p1Choice: "", p1Score: 0, isP2End: false, p2Choice: "", p2Score: 0 }; // 개별선택취합결과
 
       const divJoinWrapper = document.querySelector("#div-join-wrapper");
       const inputJoin = document.querySelector("#input-join");
       const btnJoin = document.querySelector("#btn-join");
+
       const divYourWrapper = document.querySelector("#div-your-wrapper");
       const divYourId = document.querySelector("#div-your-id");
+
       const divPlaygroundWrapper = document.querySelector("#div-playground-wrapper");
-      const btnEnterGame = document.querySelector("#btn-enter-game");
+      const btnPlaygroundEnterGame = document.querySelector("#btn-playground-enter-game");
+      const divPlaygroundYour = document.querySelector("#div-playground-your");
+      const divPlaygroundCenter = document.querySelector("#div-playground-center");
+      const divPlaygroundMy = document.querySelector("#div-playground-my");
+
       const divMyWrapper = document.querySelector("#div-my-wrapper");
       const divMyId = document.querySelector("#div-my-id");
+      const btnMyO = document.querySelector("#btn-my-o");
+      const btnMyX = document.querySelector("#btn-my-x");
+
       const divEtcWrapper = document.querySelector("#div-etc-wrapper");
       const divEtcIds = document.querySelector("#div-etc-ids");
       const divEtcUserCount = document.querySelector("#div-etc-user-count");
+      const ulScoreList = document.querySelector("#ul-score-list");
 
       /************************************************************************
        * Local Event List
@@ -73,7 +93,7 @@
       });
 
       // 게임참여 클릭
-      btnEnterGame.addEventListener("click", function (e) {
+      btnPlaygroundEnterGame.addEventListener("click", function (e) {
         if (!myInfo.isLoginOk) {
           alert("not login user");
           return;
@@ -83,6 +103,39 @@
           return;
         }
         socket.emit("enter game", myInfo.nickName);
+      });
+
+      // 게임진행:O 클릭
+      btnMyO.addEventListener("click", function (e) {
+        if (!myInfo.isLoginOk) {
+          alert("not login user");
+          return;
+        }
+        if (!myInfo.isPlayer) {
+          alert("you are not a player");
+          return;
+        }
+
+        let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
+        socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "O" });
+        btnMyO.disabled = true;
+        btnMyX.disabled = true;
+      });
+
+      // 게임진행:X 클릭
+      btnMyX.addEventListener("click", function (e) {
+        if (!myInfo.isLoginOk) {
+          alert("not login user");
+          return;
+        }
+        if (!myInfo.isPlayer) {
+          alert("you are not a player");
+          return;
+        }
+        let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
+        socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "X" });
+        btnMyO.disabled = true;
+        btnMyX.disabled = true;
       });
 
       /************************************************************************
@@ -138,22 +191,28 @@
         setPlayersLayout(serverMsg.loginUserList); // 화면변경:선수배치
       });
 
+      // 게임진행
+      socket.on("play game", function (serverMsg) {
+        console.log("play game:", serverMsg);
+        playResultInfo = serverMsg; // 게임결과수신
+        console.log("게임결과수신:", playResultInfo);
+
+        // 다음라운드 시작시 버튼 활성화
+        if (playResultInfo.round < playResultInfo.nextRound) {
+          var liTemp = document.createElement("li");
+          liTemp.innerHTML = `${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} vs ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+          ulScoreList.appendChild(liTemp);
+          btnMyO.disabled = false;
+          btnMyX.disabled = false;
+        }
+      });
+
       // 로그 아웃
       socket.on("user logout", function (serverMsg) {
         console.log("user logout:", serverMsg);
-        // if (myInfo.nickName === serverMsg.nickName) {
-        //   if (serverMsg.isPlayer) {
-        //     myInfo.isPlayer = true;
-        //     myInfo.playerNo = serverMsg.playerNo;
-        //     alert("Success to join the game.");
-        //   } else {
-        //     myInfo.isPlayer = false;
-        //     myInfo.playerNo = serverMsg.playerNo;
-        //     alert("Fail to join the game.");
-        //   }
-        // }
         setPlayersLayout(serverMsg.loginUserList); // 화면변경:선수배치
       });
+
       /************************************************************************
        * function list
        ***********************************************************************/
@@ -165,14 +224,15 @@
       function setPlayersLayout(loginUserList) {
         /* glable setting list
            - data
-           allLoginPlayerArr
-           player1Info
-           player2Info
+           allLoginPlayerArr // 로그인한 전체유저 목록
+           player1Info       // player1 정보
+           player2Info       // player2 정보
 
            - screen
-           divYourId : 상대id
-           divMyId : 내id
-           divEtcIds : 관전id 목록
+           divYourWrapper       // 상대정보 표시
+           divPlaygroundWrapper // 경기장
+           divMyWrapper         // 내정보 표시
+           divEtcWrapper        // 관전 및 기타정보 표시
         */
         player1Info = {};
         player2Info = {};
@@ -184,14 +244,6 @@
             player2Info = elm;
           }
         });
-        //tempP1 = allLoginPlayerArr.filter((v) => v.playerNo === 1);
-        //tempP2 = allLoginPlayerArr.filter((v) => v.playerNo === 2);
-        //if (tempP1.length > 0) player1Info = tempP1[0];
-        //if (tempP2.length > 0) player2Info = tempP2[0];
-
-        console.log("선수배치:allLoginPlayerArr", allLoginPlayerArr);
-        console.log("선수배치:player1", player1Info);
-        console.log("선수배치:player2", player2Info);
 
         // 선수배치
         if (myInfo.playerNo === 1) {
@@ -206,6 +258,26 @@
           // 내가 관전일때
           divYourId.innerHTML = player1Info.nickName || "게임 대기중";
           divMyId.innerHTML = player2Info.nickName || "게임 대기중";
+        }
+
+        // 선수배치 완료시
+        if (player1Info.nickName !== undefined && player2Info.nickName !== undefined) {
+          // 게임참여 버튼 감추고
+          btnPlaygroundEnterGame.setAttribute("style", "display:none;");
+          if (myInfo.isPlayer) {
+            // 내가 선수이면, O/X 버튼 enable
+            btnMyO.disabled = false;
+            btnMyX.disabled = false;
+          } else {
+            // 내가 선수아니면, O/X버튼 disable
+            btnMyO.disabled = true;
+            btnMyX.disabled = true;
+          }
+        } else {
+          // 선수배치 미완료시 - 게임참여 버튼 보이고, O/X 버튼 disable
+          btnPlaygroundEnterGame.setAttribute("style", "display:inline-block;");
+          btnMyO.disabled = true;
+          btnMyX.disabled = true;
         }
 
         // 관전목록(항상갱신)
