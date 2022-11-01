@@ -1,48 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google" content="notranslate" />
     <script src="/socket.io/tit-for-tat/socket.io.js"></script>
     <style>
+      .titfortat-game {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 2fr 3fr 2fr 1fr 1fr 1fr 2fr;
+        grid-template-areas:
+          "your"
+          "playground"
+          "my"
+          "control "
+          "others"
+          "etc"
+          "score";
+      }
       #div-your-wrapper {
+        grid-area: your;
+        background-color: lightcyan;
         display: flex;
       }
+      #div-playground-wrapper {
+        grid-area: playground;
+      }
       #div-my-wrapper {
+        grid-area: my;
+        background-color: lightcyan;
+        display: flex;
+      }
+      #div-control-buttons-wrapper {
+        grid-area: control;
+        display: flex;
+      }
+      #div-others-wrapper {
+        grid-area: others;
         display: flex;
       }
       #div-etc-wrapper {
+        grid-area: etc;
+        background-color: lightgray;
         display: flex;
+      }
+      #div-score-wrapper {
+        grid-area: score;
+      }
+      ul {
+        list-style: none;
+        padding-left: 0px;
       }
     </style>
     <title>tftv3</title>
   </head>
   <body>
-    <div id="div-join-wrapper"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">J</button></div>
-    <div id="div-your-wrapper">
-      <label>U:</label>
-      <div id="div-your-id"></div>
-      <div id="div-your-status"></div>
+    <div class="titfortat-login">
+      <div id="div-join-wrapper"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">J</button></div>
     </div>
-    <div id="div-playground-wrapper">
-      <button id="btn-playground-enter-game">TEST</button>
-      <div id="div-playground-your"></div>
-      <div id="div-playground-center"></div>
-      <div id="div-playground-my"></div>
-    </div>
-    <div id="div-my-wrapper">
-      <label>I:</label>
-      <div id="div-my-id"></div>
-      <button id="btn-my-o">O</button>
-      <button id="btn-my-x">X</button>
-    </div>
-    <div id="div-etc-wrapper">
-      <label>E:</label>
-      <div id="div-etc-ids"></div>
-      <div id="div-etc-user-count"></div>
-      <ul id="ul-score-list"></ul>
-      <ul id="ul-score-total"></ul>
+    <div class="titfortat-game">
+      <div id="div-your-wrapper">
+        <label>상대:</label>
+        <div id="div-your-id"></div>
+        <div id="div-your-status"></div>
+      </div>
+      <div id="div-playground-wrapper">
+        <button id="btn-playground-enter-game">게임하기</button>
+        <div id="div-playground-your"></div>
+        <div id="div-playground-center"></div>
+        <div id="div-playground-my"></div>
+      </div>
+      <div id="div-my-wrapper">
+        <label>나:</label>
+        <div id="div-my-id"></div>
+        <div id="div-my-status"></div>
+      </div>
+      <div id="div-control-buttons-wrapper">
+        <button id="btn-my-o">O</button>
+        <button id="btn-my-x">X</button>
+      </div>
+      <div id="div-others-wrapper">
+        <label>관전:</label>
+        <div id="div-etc-ids"></div>
+      </div>
+      <div id="div-etc-wrapper">
+        <div id="div-etc-user-count"></div>
+      </div>
+      <div id="div-score-wrapper"><ul id="ul-score-list"></ul></div>
     </div>
     <script>
       //const socket = io();
@@ -77,8 +123,6 @@
       const divEtcWrapper = document.querySelector("#div-etc-wrapper");
       const divEtcIds = document.querySelector("#div-etc-ids");
       const divEtcUserCount = document.querySelector("#div-etc-user-count");
-      const ulScoreList = document.querySelector("#ul-score-list");
-      const ulScoreTotal = document.querySelector("#ul-score-total");
 
       /************************************************************************
        * Local Event List
@@ -98,12 +142,31 @@
           inputJoin.focus();
           return;
         }
-        tempLoginId = inputJoin.value;
+
+        if (checkSpace(inputJoin.value)) {
+          alert("공백은 사용할 수 없습니다.");
+          inputJoin.focus();
+          return;
+        }
+
+        if (!checkKor(inputJoin.value) && !checkEng(inputJoin.value) && !checkNum(inputJoin.value)) {
+          alert("한글/영문/숫자만 사용가능합니다.");
+          inputJoin.focus();
+          return;
+        }
+
+        if (inputJoin.value.length > 8) {
+          alert("8자리까지 가능합니다.");
+          inputJoin.focus();
+          return;
+        }
+
+        https: tempLoginId = inputJoin.value;
         socket.emit("join user", tempLoginId);
       });
 
       // 게임참여 클릭
-      btnPlaygroundEnterGame.addEventListener("click", function (e) {
+      https: btnPlaygroundEnterGame.addEventListener("click", function (e) {
         if (!myInfo.isLoginOk) {
           alert("not login user");
           return;
@@ -127,6 +190,8 @@
         }
 
         let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
+        console.log("게임진행 O클릭.playResultInfo", playResultInfo);
+        console.log("게임진행 O클릭.nextRound", nextRound);
         socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "O" });
         btnMyO.disabled = true;
         btnMyX.disabled = true;
@@ -143,6 +208,8 @@
           return;
         }
         let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
+        console.log("게임진행 X클릭.playResultInfo", playResultInfo);
+        console.log("게임진행 X클릭.nextRound", nextRound);
         socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "X" });
         btnMyO.disabled = true;
         btnMyX.disabled = true;
@@ -160,7 +227,14 @@
 
       // 로그 아웃
       socket.on("user logout", function (serverMsg) {
-        console.log("user logout");
+        console.log("user logout", serverMsg);
+        // 중간에 선수 퇴장시 - 현재까지 점수계산, 라운드 리셋
+        if (serverMsg.logoutUser.playerNo === 1 || serverMsg.logoutUser.playerNo === 2) {
+          playResultInfo = serverMsg.playResultInfo; // 게임결과리셋
+          //alert("선수퇴장 중간점수 계산");
+          console.log("선수퇴장 점수리셋", playResultInfo);
+        }
+
         renderPlayerLayout(serverMsg.loginUserList);
         renderUserCount(serverMsg); // 접속유저수
       });
@@ -202,11 +276,11 @@
           if (serverMsg.isPlayer) {
             myInfo.isPlayer = true;
             myInfo.playerNo = serverMsg.playerNo;
-            alert("Success to join the game.");
+            //alert("Success to join the game.");
           } else {
             myInfo.isPlayer = false;
             myInfo.playerNo = serverMsg.playerNo;
-            alert("Fail to join the game.");
+            //alert("Fail to join the game.");
           }
         }
         renderPlayerLayout(serverMsg.loginUserList); // 선수배치(선수1,선수2,관전목록) rendering
@@ -219,15 +293,8 @@
 
         // 다음라운드 시작시 버튼 활성화
         if (playResultInfo.round < playResultInfo.nextRound) {
-          // 라운드 점수표시 - temp
-          var liTemp = document.createElement("li");
-          liTemp.innerHTML = `Round ${playResultInfo.round} : ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
-          ulScoreList.appendChild(liTemp);
-
-          var liTotalTemp = `<li>--------------------------------------------</li>
-                             <li>Total Round ${playResultInfo.round} End : ${playResultInfo.p1NickName}  ${playResultInfo.p1TotScore} - ${playResultInfo.p2NickName} ${playResultInfo.p2TotScore}</li>
-                             <li>--------------------------------------------</li>`;
-          ulScoreTotal.innerHTML = liTotalTemp;
+          // 라운드 점수표시
+          renderScore();
 
           // 선수만 버튼 활성
           if (myInfo.isPlayer) {
@@ -240,6 +307,45 @@
       /************************************************************************
        * function list
        ***********************************************************************/
+      // 영문(영어) 체크
+      function checkEng(str) {
+        const regExp = /[a-zA-Z]/g; // 영어
+        if (regExp.test(str)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      // 한글 체크
+      function checkKor(str) {
+        const regExp = /[ㄱ-ㅎㅏ-ㅣ가-힣]/g;
+        if (regExp.test(str)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      // 숫자 체크
+      function checkNum(str) {
+        const regExp = /[0-9]/g;
+        if (regExp.test(str)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      // 공백(스페이스 바) 체크
+      function checkSpace(str) {
+        if (str.search(/\s/) !== -1) {
+          return true; // 스페이스가 있는 경우
+        } else {
+          return false; // 스페이스 없는 경우
+        }
+      }
+
       /**
        * 선수배치(선수1,선수2,관전목록) rendering
        * @param pLoginUserList: 로그인 유저목록
@@ -249,17 +355,17 @@
         console.log("자리배치:화면그리기 myInfo", myInfo);
 
         /* glable setting list
-           - data
-           loginUserList // 로그인한 전체유저 목록
-           player1Info       // player1 정보
-           player2Info       // player2 정보
+                 - data
+                 loginUserList // 로그인한 전체유저 목록
+                 player1Info       // player1 정보
+                 player2Info       // player2 정보
 
-           - screen
-           divYourWrapper       // 상대정보 표시
-           divPlaygroundWrapper // 경기장
-           divMyWrapper         // 내정보 표시
-           divEtcWrapper        // 관전 및 기타정보 표시
-        */
+                 - screen
+                 divYourWrapper       // 상대정보 표시
+                 divPlaygroundWrapper // 경기장
+                 divMyWrapper         // 내정보 표시
+                 divEtcWrapper        // 관전 및 기타정보 표시
+              */
         player1Info = {};
         player2Info = {};
         loginUserList = pLoginUserList;
@@ -275,18 +381,18 @@
         if (myInfo.playerNo === 1) {
           // 내가 1번 선수일때
           //divYourId.innerHTML = player2Info.nickName || "게임 대기중";
-          divYourId.innerHTML = player2Info.nickName || "Ready";
+          divYourId.innerHTML = player2Info.nickName || "Ready...";
           divMyId.innerHTML = myInfo.nickName;
         } else if (myInfo.playerNo === 2) {
           // 내가 2번 선수일때
           //divYourId.innerHTML = player1Info.nickName || "게임 대기중";
-          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
+          divYourId.innerHTML = player1Info.nickName || "Ready...";
           divMyId.innerHTML = myInfo.nickName;
         } else {
           // 내가 관전일때
           //divYourId.innerHTML = player1Info.nickName || "게임 대기중";
-          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
-          divMyId.innerHTML = player2Info.nickName || "게임 대기중";
+          divYourId.innerHTML = player1Info.nickName || "Ready...";
+          divMyId.innerHTML = player2Info.nickName || "Ready...";
         }
 
         // 선수배치 완료시
@@ -327,6 +433,47 @@
        */
       function renderUserCount(serverMsg) {
         divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
+      }
+
+      /**
+       * 점수 표시
+       * @param
+       * @return
+       */
+      function renderScore() {
+        const divScoreWrapper = document.querySelector("#div-score-wrapper");
+        let ulScoreList = document.querySelector("#ul-score-list");
+
+        if (playResultInfo.round > 1) {
+          let ulLen = ulScoreList.children.length;
+          let liLast = ulScoreList.children[ulLen - 1];
+          let liLast2 = ulScoreList.children[ulLen - 2];
+          let liLast3 = ulScoreList.children[ulLen - 3];
+
+          ulScoreList.removeChild(liLast);
+          ulScoreList.removeChild(liLast2);
+          ulScoreList.removeChild(liLast3);
+        }
+
+        // round score
+        let rounScoreStr = `R ${playResultInfo.round} ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+
+        let liScoreTemp = document.createElement("li");
+        liScoreTemp.innerHTML = rounScoreStr;
+        ulScoreList.appendChild(liScoreTemp);
+
+        // total score
+        let totScoreStr = `Total ${playResultInfo.round}: ${playResultInfo.p1NickName}  ${playResultInfo.p1TotScore} - ${playResultInfo.p2NickName} ${playResultInfo.p2TotScore}`;
+
+        let liTotalScoreTemp = document.createElement("li");
+        liTotalScoreTemp.innerHTML = `-----------------------`;
+        ulScoreList.appendChild(liTotalScoreTemp);
+        let liTotalScoreTemp2 = document.createElement("li");
+        liTotalScoreTemp2.innerHTML = totScoreStr;
+        ulScoreList.appendChild(liTotalScoreTemp2);
+        let liTotalScoreTemp3 = document.createElement("li");
+        liTotalScoreTemp3.innerHTML = `-----------------------`;
+        ulScoreList.appendChild(liTotalScoreTemp3);
       }
     </script>
   </body>

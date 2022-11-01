@@ -1,30 +1,40 @@
-<style>
-  .visible {
-    visibility: visible;
-  }
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="top">
+      <ul id="score-list">
+        <li id="total-score-head-line">점수</li>
+        <li id="total-score-head-line">-----</li>
+        <li id="total-score-middle">토탈</li>
+        <li id="total-score-bottom-line">----</li>
+      </ul>
+    </div>
+    <script>
+      let d = document.getElementById("top");
+      let liTshl = document.querySelector("#total-score-head-line");
+      let liTsm = document.querySelector("#total-score-middle");
+      let liTsbl = document.querySelector("#total-score-bottom-line");
+      // let throwawayNode1 = d.removeChild(liTshl);
+      // let throwawayNode2 = d.removeChild(liTsm);
+      // let throwawayNode3 = d.removeChild(liTsbl);
 
-  .not-visible {
-    visibility: hidden;
-  }
-  .collapse {
-    visibility: collapse;
-  }
-</style>
+      let scoreList = document.querySelector("#score-list");
+      let cl = document.querySelector("#score-list").children.length;
+      let s1 = document.querySelector("#score-list").children[cl - 1];
+      let s2 = document.querySelector("#score-list").children[cl - 2];
+      let s3 = document.querySelector("#score-list").children[cl - 3];
 
-<h1 id="timer">10</h1>
-<button id="stop">stop</button>
+      scoreList.removeChild(s1);
+      scoreList.removeChild(s2);
+      scoreList.removeChild(s3);
 
-<script>
-  document.querySelector("#stop").addEventListener("click", function () {
-    clearInterval(restartTimerID);
-  });
-  var restartTimerID;
-  var timer10 = 10;
-  restartTimerID = setInterval(function () {
-    document.querySelector("#timer").innerHTML = timer10;
-    timer10--;
-    if (timer10 < 0) {
-      clearInterval(restartTimerID);
-    }
-  }, 1000);
-</script>
+      console.log(s1, s2, s3);
+    </script>
+  </body>
+</html>

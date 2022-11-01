@@ -190,6 +190,14 @@ module.exports = (server) => {
     async function disconnectProcess() {
       const sockets = await io.fetchSockets();
 
+      // 선수 퇴장시 게임 리셋(점수/라운드)
+      if (socket.data.playerNo === 1 || socket.data.playerNo === 2) {
+        p1TotScore = 0; // p1 총점
+        p2TotScore = 0; // p2 총점
+        playResultInfo = { ...playResultInfo, ...playResultInit, round: 1, nextRound: 1, p1TotScore: 0, p2TotScore: 0 }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
+        console.log("선수퇴장으로 게임 리셋", playResultInfo);
+      }
+
       // 로그인 유저목록
       const loginUserList = [];
       for (const _socket of sockets) {
@@ -198,7 +206,7 @@ module.exports = (server) => {
         }
       }
 
-      socket.broadcast.emit("user logout", { logoutUser: socket.data, allUserCount: io.of("/").sockets.size, loginUserList });
+      socket.broadcast.emit("user logout", { logoutUser: socket.data, playResultInfo, allUserCount: io.of("/").sockets.size, loginUserList });
     }
 
     socket.on("choice", (msg) => {
