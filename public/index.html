@@ -24,6 +24,8 @@
         grid-area: your;
         background-color: #f8f2f2;
         display: flex;
+        justify-content: space-evenly;
+        align-items: center;
       }
       #div-playground-wrapper {
         grid-area: playground;
@@ -32,6 +34,8 @@
         grid-area: my;
         background-color: #f8f2f2;
         display: flex;
+        justify-content: space-evenly;
+        align-items: center;
       }
       #div-control-buttons-wrapper {
         grid-area: control;
@@ -60,6 +64,7 @@
   <body>
     <div class="titfortat-login">
       <div id="div-join-wrapper"><input id="input-join" maxlength="8" autocomplete="off" /><button id="btn-join">J</button></div>
+      <div id="div-login-info-wrapper"></div>
     </div>
     <div class="titfortat-game">
       <div id="div-your-wrapper">
@@ -83,7 +88,7 @@
         <button id="btn-my-x">X</button>
       </div>
       <div id="div-others-wrapper">
-        <label>관전:</label>
+        <label>관전자:</label>
         <div id="div-etc-ids"></div>
       </div>
       <div id="div-etc-wrapper">
@@ -106,6 +111,7 @@
       const divJoinWrapper = document.querySelector("#div-join-wrapper");
       const inputJoin = document.querySelector("#input-join");
       const btnJoin = document.querySelector("#btn-join");
+      const divLoginInfoWrapper = document.querySelector("#div-login-info-wrapper");
 
       const divYourWrapper = document.querySelector("#div-your-wrapper");
       const divYourId = document.querySelector("#div-your-id");
@@ -249,6 +255,7 @@
           if (serverMsg.isLoginOk) {
             // 정상
             divJoinWrapper.setAttribute("style", "display:none;");
+            divLoginInfoWrapper.innerHTML = `${serverMsg.nickName}님 - Tit-for-Tat Game v1.0`;
             myInfo.isLoginOk = serverMsg.isLoginOk;
             myInfo.isPlayer = false;
             myInfo.nickName = serverMsg.nickName;
@@ -257,6 +264,7 @@
           } else {
             // 중복
             divJoinWrapper.setAttribute("style", "display:block;");
+            divLoginInfoWrapper.innerHTML = "";
             alert(tempLoginId + "(은/는) 이미 사용중인 이름 입니다. 다른 이름으로 로그인해 주세요.");
             inputJoin.value = "";
             return;
@@ -464,16 +472,16 @@
 
           if (myInfo.playerNo === 1) {
             // 내가 1번 선수일때
-            divYourStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p2TotScore}</h1>`;
-            divMyStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p1TotScore}</h1>`;
+            divYourStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p2TotScore}</h3>`;
+            divMyStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p1TotScore}</h3>`;
           } else if (myInfo.playerNo === 2) {
             // 내가 2번 선수일때
-            divYourStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p1TotScore}</h1>`;
-            divMyStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p2TotScore}</h1>`;
+            divYourStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p1TotScore}</h3>`;
+            divMyStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p2TotScore}</h3>`;
           } else {
             // 내가 관전일때
-            divYourStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p1TotScore}</h1>`;
-            divMyStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p2TotScore}</h1>`;
+            divYourStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p1TotScore}</h3>`;
+            divMyStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p2TotScore}</h3>`;
           }
 
           rounScoreStr = `R ${playResultInfo.round} ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
