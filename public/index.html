@@ -14,7 +14,7 @@
       .titfortat-game {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: 2fr 3fr 2fr 1fr 1fr 1fr 100px;
+        grid-template-rows: 2fr 3fr 2fr 2fr 1fr 1fr 100px;
         grid-template-areas:
           "your"
           "playground"
@@ -29,7 +29,6 @@
         justify-content: space-between;
         align-items: center;
       }
-
       #div-your-wrapper {
         grid-area: your;
         background-color: #f8f2f2;
@@ -39,6 +38,12 @@
       }
       #div-playground-wrapper {
         grid-area: playground;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      #btn-playground-enter-game {
+        height: 100%;
       }
       #div-my-wrapper {
         grid-area: my;
@@ -50,6 +55,16 @@
       #div-control-buttons-wrapper {
         grid-area: control;
         display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+      }
+      #btn-my-o {
+        flex-grow: 1;
+        height: 100%;
+      }
+      #btn-my-x {
+        flex-grow: 1;
+        height: 100%;
       }
       #div-others-wrapper {
         grid-area: others;
@@ -183,7 +198,7 @@
       });
 
       // 게임참여 클릭
-      https: btnPlaygroundEnterGame.addEventListener("click", function (e) {
+      btnPlaygroundEnterGame.addEventListener("click", function (e) {
         if (!myInfo.isLoginOk) {
           alert("not login user");
           return;
@@ -206,9 +221,9 @@
           return;
         }
 
+        divPlaygroundMy.innerHTML = "O";
+
         let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
-        console.log("게임진행 O클릭.playResultInfo", playResultInfo);
-        console.log("게임진행 O클릭.nextRound", nextRound);
         socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "O" });
         btnMyO.disabled = true;
         btnMyX.disabled = true;
@@ -224,9 +239,10 @@
           alert("you are not a player");
           return;
         }
+
+        divPlaygroundMy.innerHTML = "X";
+
         let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
-        console.log("게임진행 X클릭.playResultInfo", playResultInfo);
-        console.log("게임진행 X클릭.nextRound", nextRound);
         socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "X" });
         btnMyO.disabled = true;
         btnMyX.disabled = true;
@@ -295,11 +311,11 @@
           if (serverMsg.isPlayer) {
             myInfo.isPlayer = true;
             myInfo.playerNo = serverMsg.playerNo;
-            //alert("Success to join the game.");
+            alert("Success to join the game.");
           } else {
             myInfo.isPlayer = false;
             myInfo.playerNo = serverMsg.playerNo;
-            //alert("Fail to join the game.");
+            alert("Fail to join the game.");
           }
         }
         renderPlayerLayout(serverMsg.loginUserList); // 선수배치(선수1,선수2,관전목록) rendering
@@ -310,11 +326,40 @@
         console.log("play game", serverMsg);
         playResultInfo = serverMsg; // 게임결과수신
 
-        // 다음라운드 시작시 버튼 활성화
-        if (playResultInfo.round < playResultInfo.nextRound) {
-          // 라운드 점수표시
-          renderScore();
+        // 라운드 진행시(1사람만 선택시)
+        if (playResultInfo.round === playResultInfo.nextRound) {
+          if (myInfo.isPlayer) {
+            // 선수일때, '선택완료'로 표시
+            if ((myInfo.playerNo === 1 && playResultInfo.isP2End) || (myInfo.playerNo === 2 && playResultInfo.isP1End)) {
+              divPlaygroundYour.innerHTML = "상대선택완료";
+            }
+          } else {
+            // 관전일때, 실제선택 데이타 표시
+            divPlaygroundYour.innerHTML = playResultInfo.p1Choice;
+            divPlaygroundMy.innerHTML = playResultInfo.p2Choice;
+          }
+        } else if (playResultInfo.round < playResultInfo.nextRound) {
+          // 라운드 종료시
 
+          renderScore(); // 점수표시
+
+          /*--- TODO: 3초 타이머 카운트운 넣기
+
+               이번 라운드 종료시
+
+                상단 : 협력 : 3점
+                중단 : 3,2,1 -> ROUND 2 다음라운드 시작
+                하단 : 협력 : 3점
+
+          ---*/
+          // if (!confirm("이번라운드 종료/점수표시/3초 카운트 다운후 -> 다음라운드 시작?")) {
+          //   // 이거대신 타이머 추가하기
+          //   return;
+          // }
+
+          divPlaygroundYour.innerHTML = ``;
+          divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
+          divPlaygroundMy.innerHTML = ``;
           // 선수만 버튼 활성
           if (myInfo.isPlayer) {
             btnMyO.disabled = false;
@@ -427,6 +472,19 @@
         if (player1Info.nickName !== undefined && player2Info.nickName !== undefined) {
           // 게임참여 버튼 감추고
           btnPlaygroundEnterGame.setAttribute("style", "display:none;");
+
+          /*--- TODO: 3초 타이머 설치
+
+               중단 : 게임을 시작합니다.
+                      3
+                      2
+                      1
+                      Round1
+
+          ---*/
+
+          divPlaygroundCenter.innerHTML = "Round 1";
+
           if (myInfo.isPlayer) {
             // 내가 선수이면, O/X 버튼 enable
             btnMyO.disabled = false;
@@ -434,7 +492,12 @@
           }
         } else {
           // 선수배치 미완료시 - 게임참여 버튼 보이고, O/X 버튼 disable
-          btnPlaygroundEnterGame.setAttribute("style", "display:inline-block;");
+          if (myInfo.isPlayer) {
+            // 나만 참여중일때, 게임참여 버튼 감추기
+            btnPlaygroundEnterGame.setAttribute("style", "display:none;");
+          } else {
+            btnPlaygroundEnterGame.setAttribute("style", "display:inline-block;");
+          }
           btnMyO.disabled = true;
           btnMyX.disabled = true;
         }
@@ -476,31 +539,35 @@
         let divMyStatus = document.querySelector("#div-my-status");
 
         if (browserWidth < 768) {
-          console.log("점수표시:mobile", browserWidth);
-          /* 768px 미만 - mobile */
-          console.log(myInfo);
+          /* mobile 점수표시 - 768px 미만 */
 
           if (myInfo.playerNo === 1) {
             // 내가 1번 선수일때
-            divYourStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p2TotScore}</h3>`;
-            divMyStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p1TotScore}</h3>`;
+            divYourStatus.innerHTML = `점수 : ${playResultInfo.p2TotScore}`;
+            divPlaygroundYour.innerHTML = `${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+            divPlaygroundMy.innerHTML = `${playResultInfo.p1Choice} ${playResultInfo.p1Score}`;
+            divMyStatus.innerHTML = `점수 : ${playResultInfo.p1TotScore}`;
           } else if (myInfo.playerNo === 2) {
             // 내가 2번 선수일때
-            divYourStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p1TotScore}</h3>`;
-            divMyStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p2TotScore}</h3>`;
+            divYourStatus.innerHTML = `점수 : ${playResultInfo.p1TotScore}`;
+            divPlaygroundYour.innerHTML = `${playResultInfo.p1Choice} ${playResultInfo.p1Score}`;
+            divPlaygroundMy.innerHTML = `${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+            divMyStatus.innerHTML = `점수 : ${playResultInfo.p2TotScore}`;
           } else {
             // 내가 관전일때
-            divYourStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p1TotScore}</h3>`;
-            divMyStatus.innerHTML = `<h3> 점수 : ${playResultInfo.p2TotScore}</h3>`;
+            divYourStatus.innerHTML = `점수 : ${playResultInfo.p1TotScore}`;
+            divPlaygroundYour.innerHTML = `${playResultInfo.p1Choice} ${playResultInfo.p1Score}`;
+            divPlaygroundMy.innerHTML = `${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+            divMyStatus.innerHTML = `점수 : ${playResultInfo.p2TotScore}`;
           }
 
-          rounScoreStr = `R ${playResultInfo.round} ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+          rounScoreStr = `R${playResultInfo.round}:${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
           let liScoreTemp = document.createElement("li");
           liScoreTemp.innerHTML = rounScoreStr;
           ulScoreList.insertAdjacentElement("afterbegin", liScoreTemp); // 모바일은 descending 표기
         } else {
-          console.log("점수표시:pc", browserWidth);
-          /* 768px 이상 - pc */
+          /* desktop 점수표시 - 768px 이상 */
+
           if (playResultInfo.round > 1) {
             let ulLen = ulScoreList.children.length;
             let liLast = ulScoreList.children[ulLen - 1];
