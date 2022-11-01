@@ -10,7 +10,7 @@
       .titfortat-game {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: 2fr 3fr 2fr 1fr 1fr 1fr 2fr;
+        grid-template-rows: 2fr 3fr 2fr 1fr 1fr 1fr 100px;
         grid-template-areas:
           "your"
           "playground"
@@ -22,7 +22,7 @@
       }
       #div-your-wrapper {
         grid-area: your;
-        background-color: lightcyan;
+        background-color: #f8f2f2;
         display: flex;
       }
       #div-playground-wrapper {
@@ -30,7 +30,7 @@
       }
       #div-my-wrapper {
         grid-area: my;
-        background-color: lightcyan;
+        background-color: #f8f2f2;
         display: flex;
       }
       #div-control-buttons-wrapper {
@@ -48,6 +48,7 @@
       }
       #div-score-wrapper {
         grid-area: score;
+        overflow: auto;
       }
       ul {
         list-style: none;
@@ -155,8 +156,8 @@
           return;
         }
 
-        if (inputJoin.value.length > 8) {
-          alert("8자리까지 가능합니다.");
+        if (getByteLengthOfUtf8String(inputJoin.value) > 12) {
+          alert("한글4자까지 가능합니다.");
           inputJoin.focus();
           return;
         }
@@ -307,6 +308,15 @@
       /************************************************************************
        * function list
        ***********************************************************************/
+      // UTF8 자릿수 계산
+      function getByteLengthOfUtf8String(s) {
+        if (s != undefined && s != "") {
+          for (b = i = 0; (c = s.charCodeAt(i++)); b += c >> 11 ? 3 : c >> 7 ? 2 : 1);
+          return b;
+        } else {
+          return 0;
+        }
+      }
       // 영문(영어) 체크
       function checkEng(str) {
         const regExp = /[a-zA-Z]/g; // 영어
@@ -441,39 +451,69 @@
        * @return
        */
       function renderScore() {
-        const divScoreWrapper = document.querySelector("#div-score-wrapper");
+        let browserWidth = window.innerWidth;
+
         let ulScoreList = document.querySelector("#ul-score-list");
+        let divYourStatus = document.querySelector("#div-your-status");
+        let divMyStatus = document.querySelector("#div-my-status");
 
-        if (playResultInfo.round > 1) {
-          let ulLen = ulScoreList.children.length;
-          let liLast = ulScoreList.children[ulLen - 1];
-          let liLast2 = ulScoreList.children[ulLen - 2];
-          let liLast3 = ulScoreList.children[ulLen - 3];
+        if (browserWidth < 768) {
+          console.log("점수표시:mobile", browserWidth);
+          /* 768px 미만 - mobile */
+          console.log(myInfo);
 
-          ulScoreList.removeChild(liLast);
-          ulScoreList.removeChild(liLast2);
-          ulScoreList.removeChild(liLast3);
+          if (myInfo.playerNo === 1) {
+            // 내가 1번 선수일때
+            divYourStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p2TotScore}</h1>`;
+            divMyStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p1TotScore}</h1>`;
+          } else if (myInfo.playerNo === 2) {
+            // 내가 2번 선수일때
+            divYourStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p1TotScore}</h1>`;
+            divMyStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p2TotScore}</h1>`;
+          } else {
+            // 내가 관전일때
+            divYourStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p1TotScore}</h1>`;
+            divMyStatus.innerHTML = `<h1> 점수 : ${playResultInfo.p2TotScore}</h1>`;
+          }
+
+          rounScoreStr = `R ${playResultInfo.round} ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+          let liScoreTemp = document.createElement("li");
+          liScoreTemp.innerHTML = rounScoreStr;
+          ulScoreList.insertAdjacentElement("afterbegin", liScoreTemp); // 모바일은 descending 표기
+        } else {
+          console.log("점수표시:pc", browserWidth);
+          /* 768px 이상 - pc */
+          if (playResultInfo.round > 1) {
+            let ulLen = ulScoreList.children.length;
+            let liLast = ulScoreList.children[ulLen - 1];
+            let liLast2 = ulScoreList.children[ulLen - 2];
+            let liLast3 = ulScoreList.children[ulLen - 3];
+
+            ulScoreList.removeChild(liLast);
+            ulScoreList.removeChild(liLast2);
+            ulScoreList.removeChild(liLast3);
+          }
+
+          // round score
+          let rounScoreStr = `R ${playResultInfo.round} ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+
+          let liScoreTemp = document.createElement("li");
+          liScoreTemp.innerHTML = rounScoreStr;
+          ulScoreList.appendChild(liScoreTemp);
+
+          // total score
+          let totScoreStr = `Total ${playResultInfo.round}: ${playResultInfo.p1NickName}  ${playResultInfo.p1TotScore} - ${playResultInfo.p2NickName} ${playResultInfo.p2TotScore}`;
+
+          let liTotalScoreTemp = document.createElement("li");
+          liTotalScoreTemp.innerHTML = `-----------------------`;
+          ulScoreList.appendChild(liTotalScoreTemp);
+          let liTotalScoreTemp2 = document.createElement("li");
+          liTotalScoreTemp2.innerHTML = totScoreStr;
+          ulScoreList.appendChild(liTotalScoreTemp2);
+          let liTotalScoreTemp3 = document.createElement("li");
+          liTotalScoreTemp3.innerHTML = `-----------------------`;
+          ulScoreList.appendChild(liTotalScoreTemp3);
         }
-
-        // round score
-        let rounScoreStr = `R ${playResultInfo.round} ${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
-
-        let liScoreTemp = document.createElement("li");
-        liScoreTemp.innerHTML = rounScoreStr;
-        ulScoreList.appendChild(liScoreTemp);
-
-        // total score
-        let totScoreStr = `Total ${playResultInfo.round}: ${playResultInfo.p1NickName}  ${playResultInfo.p1TotScore} - ${playResultInfo.p2NickName} ${playResultInfo.p2TotScore}`;
-
-        let liTotalScoreTemp = document.createElement("li");
-        liTotalScoreTemp.innerHTML = `-----------------------`;
-        ulScoreList.appendChild(liTotalScoreTemp);
-        let liTotalScoreTemp2 = document.createElement("li");
-        liTotalScoreTemp2.innerHTML = totScoreStr;
-        ulScoreList.appendChild(liTotalScoreTemp2);
-        let liTotalScoreTemp3 = document.createElement("li");
-        liTotalScoreTemp3.innerHTML = `-----------------------`;
-        ulScoreList.appendChild(liTotalScoreTemp3);
       }
     </script>
   </body>
