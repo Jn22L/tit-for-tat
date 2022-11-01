@@ -7,6 +7,10 @@
     <meta name="google" content="notranslate" />
     <script src="/socket.io/tit-for-tat/socket.io.js"></script>
     <style>
+      html,
+      body {
+        margin: 0;
+      }
       .titfortat-game {
         display: grid;
         grid-template-columns: 1fr;
@@ -20,6 +24,12 @@
           "etc"
           "score";
       }
+      #div-login-info-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
       #div-your-wrapper {
         grid-area: your;
         background-color: #f8f2f2;
@@ -255,7 +265,7 @@
           if (serverMsg.isLoginOk) {
             // 정상
             divJoinWrapper.setAttribute("style", "display:none;");
-            divLoginInfoWrapper.innerHTML = `${serverMsg.nickName}님 - Tit-for-Tat Game v1.0`;
+            divLoginInfoWrapper.innerHTML = `<div>Tit-for-Tat Game v1.0</div><div>[${serverMsg.nickName}]님</div> `;
             myInfo.isLoginOk = serverMsg.isLoginOk;
             myInfo.isPlayer = false;
             myInfo.nickName = serverMsg.nickName;
