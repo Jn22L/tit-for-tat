@@ -10,11 +10,17 @@
       html,
       body {
         margin: 0;
+        font-family: Source Code Pro, sourcecodepro, se-sourcecodepro, Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace, sans-serif;
+        font-size: 14px;
       }
+      .titfortat-login {
+        background-color: #ca9b52;
+      }
+
       .titfortat-game {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: 2fr 3fr 2fr 2fr 1fr 1fr 100px;
+        grid-template-rows: 2fr 4fr 2fr 2fr 1fr 1fr 150px;
         grid-template-areas:
           "your"
           "playground"
@@ -24,6 +30,11 @@
           "etc"
           "score";
       }
+      #div-join-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
       #div-login-info-wrapper {
         display: flex;
         justify-content: space-between;
@@ -31,10 +42,11 @@
       }
       #div-your-wrapper {
         grid-area: your;
-        background-color: white;
+        background-color: #ffcc80;
         display: flex;
         justify-content: space-evenly;
         align-items: center;
+        font-size: 20px;
       }
       #div-playground-wrapper {
         grid-area: playground;
@@ -42,15 +54,26 @@
         flex-direction: column;
         justify-content: center;
       }
+      #div-playground-your {
+        text-align: center;
+      }
+      #div-playground-center {
+        text-align: center;
+        font-size: 20px;
+      }
+      #div-playground-my {
+        text-align: center;
+      }
       #btn-playground-enter-game {
         height: 100%;
       }
       #div-my-wrapper {
         grid-area: my;
-        background-color: white;
+        background-color: #ffcc80;
         display: flex;
         justify-content: space-evenly;
         align-items: center;
+        font-size: 20px;
       }
       #div-control-buttons-wrapper {
         grid-area: control;
@@ -69,26 +92,36 @@
       #div-others-wrapper {
         grid-area: others;
         display: flex;
+        font-size: 12px;
       }
       #div-etc-wrapper {
         grid-area: etc;
         background-color: white;
         display: flex;
+        font-size: 12px;
       }
       #div-score-wrapper {
         grid-area: score;
         overflow: auto;
+        font-size: 12px;
       }
       ul {
         list-style: none;
         padding-left: 0px;
+      }
+      .titfortat-game button {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 20px;
       }
     </style>
     <title>Tit-for-Tab Game</title>
   </head>
   <body>
     <div class="titfortat-login">
-      <div id="div-join-wrapper"><input id="input-join" style="width: 100px" maxlength="8" autocomplete="off" /><button id="btn-join">Join</button></div>
+      <div id="div-join-wrapper">
+        <div>Tit-for-Tat Game</div>
+        <div><input id="input-join" style="width: 100px" maxlength="8" autocomplete="off" /><button id="btn-join">Join</button></div>
+      </div>
       <div id="div-login-info-wrapper"></div>
     </div>
     <div class="titfortat-game">
@@ -131,6 +164,7 @@
       let player2Info = { nickName: "", playerNo: 2 };
       let playResultInfo = { round: 1, nextRound: 1, isP1End: false, p1Choice: "", p1Score: 0, p1TotScore: 0, isP2End: false, p2Choice: "", p2Score: 0, p2TotScore: 0 }; // 개별선택취합결과
       let logoutPlayerNoDuringGame = 0; // 게임도중 logout 선수번호
+      let isGameStart = false;
 
       const divJoinWrapper = document.querySelector("#div-join-wrapper");
       const inputJoin = document.querySelector("#input-join");
@@ -279,8 +313,7 @@
           if (serverMsg.isLoginOk) {
             // 정상
             divJoinWrapper.setAttribute("style", "display:none;");
-            //divLoginInfoWrapper.innerHTML = `<div>Tit-for-Tat Game v1.0</div><div>${serverMsg.nickName}</div> `;
-            divLoginInfoWrapper.innerHTML = `<div>v1</div><div>${serverMsg.nickName}</div> `;
+            divLoginInfoWrapper.innerHTML = `<div>Tit-for-Tat Game</div><div>${serverMsg.nickName}</div> `;
             myInfo.isLoginOk = serverMsg.isLoginOk;
             myInfo.isPlayer = false;
             myInfo.nickName = serverMsg.nickName;
@@ -323,19 +356,25 @@
       socket.on("play game", function (serverMsg) {
         playResultInfo = serverMsg; // 게임결과수신
 
-        console.log("게임진행:play game:", playResultInfo);
         // 라운드 진행시(1사람만 선택시)
         if (playResultInfo.round === playResultInfo.nextRound) {
-          console.log("게임진행:play game - 1인 선택시:", playResultInfo);
           if (myInfo.isPlayer) {
             // 선수일때, '선택완료'로 표시
             if ((myInfo.playerNo === 1 && playResultInfo.isP2End) || (myInfo.playerNo === 2 && playResultInfo.isP1End)) {
-              divPlaygroundYour.innerHTML = "상대선택완료";
+              divPlaygroundYour.innerHTML = `<span style="color:red;">상대선택완료</span>`;
             }
           } else {
             // 관전일때, 실제선택 데이타 표시
-            divPlaygroundYour.innerHTML = playResultInfo.p1Choice;
-            divPlaygroundMy.innerHTML = playResultInfo.p2Choice;
+            if (playResultInfo.p1Choice === "O") {
+              divPlaygroundYour.innerHTML = `<span style="color:red;">협력</span>`;
+            } else if (playResultInfo.p1Choice === "X") {
+              divPlaygroundYour.innerHTML = `<span style="color:red;">배신</span>`;
+            }
+            if (playResultInfo.p2Choice === "O") {
+              divPlaygroundMy.innerHTML = `<span style="color:red;">협력</span>`;
+            } else if (playResultInfo.p2Choice === "X") {
+              divPlaygroundMy.innerHTML = `<span style="color:red;">배신</span>`;
+            }
           }
         } else if (playResultInfo.round < playResultInfo.nextRound) {
           // 라운드 종료시
@@ -345,16 +384,16 @@
           // 3초후 다음라운드 진행표시
           let timer3 = 3;
           let timer3Id = setInterval(function () {
-            divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다. (게임중간)`;
+            divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.`;
             timer3--;
             if (timer3 < 0) {
               clearInterval(timer3Id);
               if (myInfo.isPlayer) {
-                divPlaygroundYour.innerHTML = "";
-                divPlaygroundMy.innerHTML = "[협력] 또는 [배신]을 선택하세요";
+                divPlaygroundYour.innerHTML = `협/협:3/3,배/배:1/1,배/협:5/0`;
+                divPlaygroundMy.innerHTML = `<span style="color:#EA4335">[협력] 또는 [배신]을 선택하세요`;
               } else {
-                divPlaygroundYour.innerHTML = "";
-                divPlaygroundMy.innerHTML = "";
+                divPlaygroundYour.innerHTML = `협/협:3/3,배/배:1/1,배/협:5/0`;
+                divPlaygroundMy.innerHTML = `<span style="color:#EA4335">[협력] 또는 [배신]을 선택하세요`;
               }
 
               divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
@@ -475,46 +514,36 @@
         // 선수배치 완료시
         if (player1Info.nickName !== undefined && player2Info.nickName !== undefined) {
           // 게임참여 버튼 감추고, 총점 표시 초기화
-          btnPlaygroundEnterGame.setAttribute("style", "display:none;");
-          document.querySelector("#div-your-status").innerHTML = "";
-          document.querySelector("#div-my-status").innerHTML = "";
+          // 게임시작시 1번 렌더링
+          if (!isGameStart && playResultInfo.nextRound === 1) {
+            isGameStart = true;
 
-          // 무조건 리플레시 되는 문제 해결할것
-          // 3초후 다음라운드 진행표시
-          // let timer3 = 3;
-          // let timer3Id = setInterval(function () {
-          //   divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.(게임시작)`;
-          //   timer3--;
-          //   if (timer3 < 0) {
-          //     clearInterval(timer3Id);
-          //     if (myInfo.isPlayer) {
-          //       divPlaygroundYour.innerHTML = "";
-          //       divPlaygroundMy.innerHTML = "[협력] 또는 [배신]을 선택하세요";
-          //     } else {
-          //       divPlaygroundYour.innerHTML = "";
-          //       divPlaygroundMy.innerHTML = "";
-          //     }
-          //     divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
-          //     // 선수만 버튼 활성
-          //     if (myInfo.isPlayer) {
-          //       btnMyO.disabled = false;
-          //       btnMyX.disabled = false;
-          //     }
-          //   }
-          // }, 1000);
+            btnPlaygroundEnterGame.setAttribute("style", "display:none;");
+            document.querySelector("#div-your-status").innerHTML = "";
+            document.querySelector("#div-my-status").innerHTML = "";
 
-          if (myInfo.isPlayer) {
-            divPlaygroundYour.innerHTML = "";
-            divPlaygroundMy.innerHTML = "[협력] 또는 [배신]을 선택하세요";
-          } else {
-            divPlaygroundYour.innerHTML = "";
-            divPlaygroundMy.innerHTML = "";
-          }
-          divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
-          // 선수만 버튼 활성
-          if (myInfo.isPlayer) {
-            btnMyO.disabled = false;
-            btnMyX.disabled = false;
+            // 3초후 다음라운드 진행표시
+            let timer3 = 3;
+            let timer3Id = setInterval(function () {
+              divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.`;
+              timer3--;
+              if (timer3 < 0) {
+                clearInterval(timer3Id);
+                if (myInfo.isPlayer) {
+                  divPlaygroundYour.innerHTML = "협/협:3/3,배/배:1/1,배/협:5/0";
+                  divPlaygroundMy.innerHTML = `<span style="color:#EA4335">[협력] 또는 [배신]을 선택하세요`;
+                } else {
+                  divPlaygroundYour.innerHTML = "협/협:3/3,배/배:1/1,배/협:5/0";
+                  divPlaygroundMy.innerHTML = `<span style="color:#EA4335">[협력] 또는 [배신]을 선택하세요`;
+                }
+                divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
+                // 선수만 버튼 활성
+                if (myInfo.isPlayer) {
+                  btnMyO.disabled = false;
+                  btnMyX.disabled = false;
+                }
+              }
+            }, 1000);
           }
         } else {
           // 선수배치 미완료시 - 게임참여 버튼 보이고, O/X 버튼 disable
@@ -549,7 +578,6 @@
        * @return
        */
       function renderUserCount(serverMsg) {
-        //divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
         divEtcUserCount.innerHTML = `All:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
       }
 
@@ -570,28 +598,29 @@
 
           if (myInfo.playerNo === 1) {
             // 내가 1번 선수일때
-            //divYourStatus.innerHTML = `점수 : ${playResultInfo.p2TotScore}`;
-            divYourStatus.innerHTML = `s : ${playResultInfo.p2TotScore}`;
-            divPlaygroundYour.innerHTML = `${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
-            divPlaygroundMy.innerHTML = `${playResultInfo.p1Choice} ${playResultInfo.p1Score}`;
-            divMyStatus.innerHTML = `s : ${playResultInfo.p1TotScore}`;
+            divYourStatus.innerHTML = `점수 : <span style="color:red;">${playResultInfo.p2TotScore}</span>`;
+            divPlaygroundYour.innerHTML = `<span style="color:red;">${playResultInfo.p2Choice === "O" ? "협력" : "배신"} ${playResultInfo.p2Score}</span>`;
+            divPlaygroundMy.innerHTML = `<span style="color:red;">${playResultInfo.p1Choice === "O" ? "협력" : "배신"} ${playResultInfo.p1Score}</span>`;
+            divMyStatus.innerHTML = `점수 : <span style="color:red;">${playResultInfo.p1TotScore}</span>`;
           } else if (myInfo.playerNo === 2) {
             // 내가 2번 선수일때
-            divYourStatus.innerHTML = `s : ${playResultInfo.p1TotScore}`;
-            divPlaygroundYour.innerHTML = `${playResultInfo.p1Choice} ${playResultInfo.p1Score}`;
-            divPlaygroundMy.innerHTML = `${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
-            divMyStatus.innerHTML = `s : ${playResultInfo.p2TotScore}`;
+            divYourStatus.innerHTML = `점수 : <span style="color:red;">${playResultInfo.p1TotScore}</span>`;
+            divPlaygroundYour.innerHTML = `<span style="color:red;">${playResultInfo.p1Choice === "O" ? "협력" : "배신"} ${playResultInfo.p1Score}</span>`;
+            divPlaygroundMy.innerHTML = `<span style="color:red;">${playResultInfo.p2Choice === "O" ? "협력" : "배신"} ${playResultInfo.p2Score}</span>`;
+            divMyStatus.innerHTML = `점수 : <span style="color:red;">${playResultInfo.p2TotScore}</span>`;
           } else {
             // 내가 관전일때
-            divYourStatus.innerHTML = `s : ${playResultInfo.p1TotScore}`;
-            divPlaygroundYour.innerHTML = `${playResultInfo.p1Choice} ${playResultInfo.p1Score}`;
-            divPlaygroundMy.innerHTML = `${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
-            divMyStatus.innerHTML = `s : ${playResultInfo.p2TotScore}`;
+            divYourStatus.innerHTML = `점수 : <span style="color:red;">${playResultInfo.p1TotScore}</span>`;
+            divPlaygroundYour.innerHTML = `<span style="color:red;">${playResultInfo.p1Choice === "O" ? "협력" : "배신"} ${playResultInfo.p1Score}</span>`;
+            divPlaygroundMy.innerHTML = `<span style="color:red;">${playResultInfo.p2Choice === "O" ? "협력" : "배신"} ${playResultInfo.p2Score}</span>`;
+            divMyStatus.innerHTML = `점수 : <span style="color:red;">${playResultInfo.p2TotScore}</span>`;
           }
 
           if (!logoutPlayerNoDuringGame) {
             // 기권승이 아닐때
-            rounScoreStr = `R${playResultInfo.round}:${playResultInfo.p1NickName} ${playResultInfo.p1Choice} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${playResultInfo.p2Choice} ${playResultInfo.p2Score}`;
+            rounScoreStr = `R${playResultInfo.round}:${playResultInfo.p1NickName} ${playResultInfo.p1Choice === "O" ? "협력" : "배신"} ${playResultInfo.p1Score} - ${playResultInfo.p2NickName} ${
+              playResultInfo.p2Choice === "O" ? "협력" : "배신"
+            } ${playResultInfo.p2Score}`;
             let liScoreTemp = document.createElement("li");
             liScoreTemp.innerHTML = rounScoreStr;
             ulScoreList.insertAdjacentElement("afterbegin", liScoreTemp); // 모바일은 descending 표기
@@ -599,6 +628,7 @@
 
           //정상 게임종료시 - 라운드 end
           if (playResultInfo.nextRound === -1) {
+            isGameStart = false;
             if (myInfo.playerNo === 1) {
               // 내가 1번 선수일때
               divPlaygroundYour.innerHTML = `GAME OVER`;
@@ -658,23 +688,26 @@
             ulScoreList.insertAdjacentElement("afterbegin", liScoreTemp); // 모바일은 descending 표기
           } else if (playResultInfo.nextRound === -2) {
             // 비정상 게임종료시 - 선수logout
-            if (myInfo.isPlayer) {
-              // 남은 선수일때
-              divPlaygroundYour.innerHTML = `GAME OVER`;
-              divPlaygroundCenter.innerHTML = `YOU WIN (기권승) !`;
-              divPlaygroundMy.innerHTML = `👍👍👍`;
-            } else {
-              // 내가 관전일때
-              if (logoutPlayerNoDuringGame === 1) {
-                // 나간선수가 1번이면 2번승리
+            if (isGameStart) {
+              isGameStart = false;
+              if (myInfo.isPlayer) {
+                // 남은 선수일때
                 divPlaygroundYour.innerHTML = `GAME OVER`;
-                divPlaygroundCenter.innerHTML = `${player2Info.nickName}WIN(기권승)!`;
+                divPlaygroundCenter.innerHTML = `YOU WIN (기권승) !`;
                 divPlaygroundMy.innerHTML = `👍👍👍`;
-              } else if (logoutPlayerNoDuringGame === 2) {
-                // 나간선수가 2번이면 1번승리
-                divPlaygroundYour.innerHTML = `GAME OVER`;
-                divPlaygroundCenter.innerHTML = `${player1Info.nickName}WIN(기권승)!`;
-                divPlaygroundMy.innerHTML = `👍👍👍`;
+              } else {
+                // 내가 관전일때
+                if (logoutPlayerNoDuringGame === 1) {
+                  // 나간선수가 1번이면 2번승리
+                  divPlaygroundYour.innerHTML = `GAME OVER`;
+                  divPlaygroundCenter.innerHTML = `${player2Info.nickName}WIN(기권승)!`;
+                  divPlaygroundMy.innerHTML = `👍👍👍`;
+                } else if (logoutPlayerNoDuringGame === 2) {
+                  // 나간선수가 2번이면 1번승리
+                  divPlaygroundYour.innerHTML = `GAME OVER`;
+                  divPlaygroundCenter.innerHTML = `${player1Info.nickName}WIN(기권승)!`;
+                  divPlaygroundMy.innerHTML = `👍👍👍`;
+                }
               }
             }
           }

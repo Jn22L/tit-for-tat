@@ -4,15 +4,12 @@ module.exports = (server) => {
   const io = SocketIO(server, { path: "/socket.io/tit-for-tat/" });
   const playResultInit = { isP1End: false, p1NickName: "", p1Choice: "", p1Score: 0, isP2End: false, p2NickName: "", p2Choice: "", p2Score: 0 }; // 결과 초기화용
 
-  //const lastRound = 2; // 마지막 라운드 ( 개선점: client 방장 설정값의 근사치로 랜덤생성하게 -> 나중에 추가 ??? )
-  const lastRound = 2; // 마지막 라운드 ( 개선점: client 방장 설정값의 근사치로 랜덤생성하게 -> 나중에 추가 ??? )
+  const lastRound = 5; // 마지막 라운드 ( 개선점: client 방장 설정값의 근사치로 랜덤생성하게 -> 나중에 추가 ??? )
   let playResultInfo = {}; // 이번라운드결과
   let p1TotScore = 0; // p1 총점
   let p2TotScore = 0; // p2 총점
 
   io.on("connection", (socket) => {
-    console.log("connection", socket.data);
-
     connectProcess(); // 최초 연결시, 로그인 유저목록 전송
 
     /**
@@ -21,7 +18,6 @@ module.exports = (server) => {
      * @return
      */
     socket.on("join user", (tempLoginId) => {
-      console.log("join user", tempLoginId);
       joinUserProcess(tempLoginId);
     });
 
@@ -31,7 +27,6 @@ module.exports = (server) => {
      * @return
      */
     socket.on("enter game", (nickName) => {
-      console.log("enter game", nickName);
       enterGameProcess(nickName);
     });
 
@@ -41,8 +36,6 @@ module.exports = (server) => {
      * @return playResultInfo { round: 1, nextRound:1, isP1End:false, p1NickName:"", p1Choice: "", p1Score: 0, isP2End: false, p2NickName:"", p2Choice: "", p2Score: 0 }; // 개별선택취합결과
      */
     socket.on("play game", (playInfo) => {
-      console.log("play game", playInfo);
-
       if (playResultInfo.isP1End || playResultInfo.isP2End) {
         if (playInfo.playerNo === 1) {
           playResultInfo.round = playInfo.round;
@@ -102,8 +95,6 @@ module.exports = (server) => {
           playResultInfo.p1TotScore = 0;
           playResultInfo.p2TotScore = 0;
           playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
-
-          console.log("게임종료:playResultInfo", playResultInfo);
         } else {
           // 게임진행시 nextRound ++
           playResultInfo.nextRound = playInfo.round + 1;
@@ -134,7 +125,6 @@ module.exports = (server) => {
      * @return
      */
     socket.on("go waiting room", (msg) => {
-      console.log("go waiting room", msg);
       goWaitingRoomProcess(msg);
     });
 
@@ -144,9 +134,7 @@ module.exports = (server) => {
      * @return
      */
     socket.on("disconnect", () => {
-      console.log("disconnnect", socket.data);
       disconnectProcess();
-      //socket.broadcast.emit("user logout", socket.data);
     });
 
     /**
@@ -292,7 +280,6 @@ module.exports = (server) => {
     }
 
     socket.on("choice", (msg) => {
-      console.log("choice", msg);
       io.emit("choice", msg);
     });
 
