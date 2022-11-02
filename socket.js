@@ -232,10 +232,10 @@ module.exports = (server) => {
       const loginUserList = [];
       for (const _socket of sockets) {
         if (_socket.data.playerNo === 1 && msg.isPlayNo1GoWaitingRoom) {
-          _socket.data.playerNo = 999;
+          _socket.data.playerNo = 998; // 998 NOT 999
         }
         if (_socket.data.playerNo === 2 && msg.isPlayNo2GoWaitingRoom) {
-          _socket.data.playerNo = 999;
+          _socket.data.playerNo = 998; // 998 NOT 999
         }
         loginUserList.push({ nickName: _socket.data.nickName, playerNo: _socket.data.playerNo });
       }
