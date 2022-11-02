@@ -42,18 +42,21 @@ module.exports = (server) => {
      */
     socket.on("play game", (playInfo) => {
       console.log("play game", playInfo);
-      if (playInfo.playerNo === 1) {
-        playResultInfo.round = playInfo.round;
-        playResultInfo.nextRound = playInfo.round;
-        playResultInfo.isP1End = true;
-        playResultInfo.p1NickName = playInfo.nickName;
-        playResultInfo.p1Choice = playInfo.choice;
-      } else if (playInfo.playerNo === 2) {
-        playResultInfo.round = playInfo.round;
-        playResultInfo.nextRound = playInfo.round;
-        playResultInfo.isP2End = true;
-        playResultInfo.p2NickName = playInfo.nickName;
-        playResultInfo.p2Choice = playInfo.choice;
+
+      if (playResultInfo.isP1End || playResultInfo.isP2End) {
+        if (playInfo.playerNo === 1) {
+          playResultInfo.round = playInfo.round;
+          playResultInfo.nextRound = playInfo.round;
+          playResultInfo.isP1End = true;
+          playResultInfo.p1NickName = playInfo.nickName;
+          playResultInfo.p1Choice = playInfo.choice;
+        } else if (playInfo.playerNo === 2) {
+          playResultInfo.round = playInfo.round;
+          playResultInfo.nextRound = playInfo.round;
+          playResultInfo.isP2End = true;
+          playResultInfo.p2NickName = playInfo.nickName;
+          playResultInfo.p2Choice = playInfo.choice;
+        }
       }
 
       // 1,2번 모두 선택 완료시 라운드 점수계산
@@ -87,11 +90,10 @@ module.exports = (server) => {
           playResultInfo.nextRound = playInfo.round + 1;
         }
 
-        console.log("게임결과:", playResultInfo);
         io.emit("play game", playResultInfo);
 
         // 전송후 게임결과 클리어
-        if (playResultInfo.nextRound > lastRound) {
+        if (playResultInfo.nextRound === -1) {
           // 게임종료시 : 다시 1라운드 준비
           p1TotScore = 0; // p1 총점
           p2TotScore = 0; // p2 총점
@@ -100,13 +102,29 @@ module.exports = (server) => {
           playResultInfo.p1TotScore = 0;
           playResultInfo.p2TotScore = 0;
           playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
+
+          console.log("게임종료:playResultInfo", playResultInfo);
         } else {
           // 게임진행시 nextRound ++
           playResultInfo.nextRound = playInfo.round + 1;
           playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
         }
-
-        console.log("게임결과 클리어:", playResultInfo);
+      } else {
+        // 한사람만 선택시
+        if (playInfo.playerNo === 1) {
+          playResultInfo.round = playInfo.round;
+          playResultInfo.nextRound = playInfo.round;
+          playResultInfo.isP1End = true;
+          playResultInfo.p1NickName = playInfo.nickName;
+          playResultInfo.p1Choice = playInfo.choice;
+        } else if (playInfo.playerNo === 2) {
+          playResultInfo.round = playInfo.round;
+          playResultInfo.nextRound = playInfo.round;
+          playResultInfo.isP2End = true;
+          playResultInfo.p2NickName = playInfo.nickName;
+          playResultInfo.p2Choice = playInfo.choice;
+        }
+        io.emit("play game", playResultInfo);
       }
     });
 

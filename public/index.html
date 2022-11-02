@@ -84,36 +84,34 @@
         padding-left: 0px;
       }
     </style>
-    <title>tftv3</title>
+    <title>Tit-for-Tab Game</title>
   </head>
   <body>
     <div class="titfortat-login">
-      <div id="div-join-wrapper"><input id="input-join" style="width: 30px" maxlength="8" autocomplete="off" /><button id="btn-join">J</button></div>
+      <div id="div-join-wrapper"><input id="input-join" style="width: 100px" maxlength="8" autocomplete="off" /><button id="btn-join">Join</button></div>
       <div id="div-login-info-wrapper"></div>
     </div>
     <div class="titfortat-game">
       <div id="div-your-wrapper">
-        <label>y:</label>
         <div id="div-your-id"></div>
         <div id="div-your-status"></div>
       </div>
       <div id="div-playground-wrapper">
-        <button id="btn-playground-enter-game">e</button>
+        <button id="btn-playground-enter-game">게임하기</button>
         <div id="div-playground-your"></div>
         <div id="div-playground-center"></div>
         <div id="div-playground-my"></div>
       </div>
       <div id="div-my-wrapper">
-        <label>i:</label>
         <div id="div-my-id"></div>
         <div id="div-my-status"></div>
       </div>
       <div id="div-control-buttons-wrapper">
-        <button id="btn-my-o">1</button>
-        <button id="btn-my-x">2</button>
+        <button id="btn-my-o">협력</button>
+        <button id="btn-my-x">배신</button>
       </div>
       <div id="div-others-wrapper">
-        <label>o:</label>
+        <label>관전자:</label>
         <div id="div-etc-ids"></div>
       </div>
       <div id="div-etc-wrapper">
@@ -222,9 +220,7 @@
           return;
         }
 
-        console.log("게임진행 O 클릭", playResultInfo);
-
-        divPlaygroundMy.innerHTML = "O";
+        divPlaygroundMy.innerHTML = "협력";
 
         let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
         socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "O" });
@@ -243,9 +239,7 @@
           return;
         }
 
-        console.log("게임진행 X 클릭", playResultInfo);
-
-        divPlaygroundMy.innerHTML = "X";
+        divPlaygroundMy.innerHTML = "배신";
 
         let nextRound = playResultInfo.nextRound; // 둘다선택시 서버에서 라운드 + 1
         socket.emit("play game", { round: nextRound, nickName: myInfo.nickName, playerNo: myInfo.playerNo, choice: "X" });
@@ -329,14 +323,14 @@
       socket.on("play game", function (serverMsg) {
         playResultInfo = serverMsg; // 게임결과수신
 
+        console.log("게임진행:play game:", playResultInfo);
         // 라운드 진행시(1사람만 선택시)
         if (playResultInfo.round === playResultInfo.nextRound) {
           console.log("게임진행:play game - 1인 선택시:", playResultInfo);
           if (myInfo.isPlayer) {
             // 선수일때, '선택완료'로 표시
             if ((myInfo.playerNo === 1 && playResultInfo.isP2End) || (myInfo.playerNo === 2 && playResultInfo.isP1End)) {
-              //divPlaygroundYour.innerHTML = "상대선택완료";
-              divPlaygroundYour.innerHTML = "U OK";
+              divPlaygroundYour.innerHTML = "상대선택완료";
             }
           } else {
             // 관전일때, 실제선택 데이타 표시
@@ -346,15 +340,12 @@
         } else if (playResultInfo.round < playResultInfo.nextRound) {
           // 라운드 종료시
 
-          console.log("게임진행:play game - 라운드종료시:", playResultInfo);
-
           renderScore(); // 점수표시
 
           // 3초후 다음라운드 진행표시
           let timer3 = 3;
           let timer3Id = setInterval(function () {
-            //divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.`;
-            divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>`;
+            divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다. (게임중간)`;
             timer3--;
             if (timer3 < 0) {
               clearInterval(timer3Id);
@@ -366,8 +357,7 @@
                 divPlaygroundMy.innerHTML = "";
               }
 
-              //divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
-              divPlaygroundCenter.innerHTML = `R ${playResultInfo.nextRound}`;
+              divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
               // 선수만 버튼 활성
               if (myInfo.isPlayer) {
                 btnMyO.disabled = false;
@@ -379,24 +369,11 @@
           // 게임 정상종료시
           renderScore(); // 점수표시
           playResultInfo.nextRound = 1;
-
-          // 3초후 자리배치 다시
-          // let timer3 = 3;
-          // let timer3Id = setInterval(function () {
-          //   //divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.`;
-          //   divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>`;
-          //   timer3--;
-          //   if (timer3 < 0) {
-          //     clearInterval(timer3Id);
-          //     renderPlayerLayout(loginUserList); // 선수배치(선수1,선수2,관전목록) rendering
-          //   }
-          // }, 1000);
         }
       });
 
       // 게임종료후 패자/동점자 대기실 이동
       socket.on("go waiting room", function (serverMsg) {
-        console.log(serverMsg);
         renderPlayerLayout(serverMsg); // 선수배치(선수1,선수2,관전목록) rendering
       });
 
@@ -483,31 +460,29 @@
         // 선수배치
         if (myInfo.playerNo === 1) {
           // 내가 1번 선수일때
-          //divYourId.innerHTML = player2Info.nickName || "게임 대기중";
-          divYourId.innerHTML = player2Info.nickName || "r...";
+          divYourId.innerHTML = player2Info.nickName || "게임 대기중";
           divMyId.innerHTML = myInfo.nickName;
         } else if (myInfo.playerNo === 2) {
           // 내가 2번 선수일때
-          //divYourId.innerHTML = player1Info.nickName || "게임 대기중";
-          divYourId.innerHTML = player1Info.nickName || "r...";
+          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
           divMyId.innerHTML = myInfo.nickName;
         } else {
           // 내가 관전일때
-          //divYourId.innerHTML = player1Info.nickName || "게임 대기중";
-          divYourId.innerHTML = player1Info.nickName || "r...";
-          divMyId.innerHTML = player2Info.nickName || "r...";
+          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
+          divMyId.innerHTML = player2Info.nickName || "게임 대기중";
         }
 
         // 선수배치 완료시
         if (player1Info.nickName !== undefined && player2Info.nickName !== undefined) {
-          // 게임참여 버튼 감추고
+          // 게임참여 버튼 감추고, 총점 표시 초기화
           btnPlaygroundEnterGame.setAttribute("style", "display:none;");
+          document.querySelector("#div-your-status").innerHTML = "";
+          document.querySelector("#div-my-status").innerHTML = "";
 
           // 3초후 다음라운드 진행표시
           let timer3 = 3;
           let timer3Id = setInterval(function () {
-            //divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.`;
-            divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>`;
+            divPlaygroundCenter.innerHTML = `<span style='color:red'>${timer3}</span>초후 게임을 시작합니다.(게임시작)`;
             timer3--;
             if (timer3 < 0) {
               clearInterval(timer3Id);
@@ -518,8 +493,7 @@
                 divPlaygroundYour.innerHTML = "";
                 divPlaygroundMy.innerHTML = "";
               }
-              //divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
-              divPlaygroundCenter.innerHTML = `R ${playResultInfo.nextRound}`;
+              divPlaygroundCenter.innerHTML = `Round ${playResultInfo.nextRound}`;
               // 선수만 버튼 활성
               if (myInfo.isPlayer) {
                 btnMyO.disabled = false;
@@ -561,7 +535,7 @@
        */
       function renderUserCount(serverMsg) {
         //divEtcUserCount.innerHTML = `전체:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
-        divEtcUserCount.innerHTML = `a:${serverMsg.allUserCount}l:${serverMsg.loginUserList.length}n:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
+        divEtcUserCount.innerHTML = `All:${serverMsg.allUserCount} 로그인:${serverMsg.loginUserList.length} 비로그인:${serverMsg.allUserCount - serverMsg.loginUserList.length}`;
       }
 
       /**
