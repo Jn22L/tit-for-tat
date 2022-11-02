@@ -4,6 +4,8 @@ module.exports = (server) => {
   const io = SocketIO(server, { path: "/socket.io/tit-for-tat/" });
   const playResultInit = { isP1End: false, p1NickName: "", p1Choice: "", p1Score: 0, isP2End: false, p2NickName: "", p2Choice: "", p2Score: 0 }; // 결과 초기화용
 
+  //const lastRound = 2; // 마지막 라운드 ( 개선점: client 방장 설정값의 근사치로 랜덤생성하게 -> 나중에 추가 ??? )
+  const lastRound = 2; // 마지막 라운드 ( 개선점: client 방장 설정값의 근사치로 랜덤생성하게 -> 나중에 추가 ??? )
   let playResultInfo = {}; // 이번라운드결과
   let p1TotScore = 0; // p1 총점
   let p2TotScore = 0; // p2 총점
@@ -31,6 +33,16 @@ module.exports = (server) => {
     socket.on("enter game", (nickName) => {
       console.log("enter game", nickName);
       enterGameProcess(nickName);
+    });
+
+    /**
+     * on game start
+     * @param
+     * @return
+     */
+    socket.on("game start", () => {
+      console.log("game start");
+      io.emit("game start", playResultInit);
     });
 
     /**
@@ -76,12 +88,20 @@ module.exports = (server) => {
         playResultInfo.p1TotScore = p1TotScore;
         playResultInfo.p2TotScore = p2TotScore;
 
-        // 다음라운드
-        playResultInfo.nextRound = playInfo.round + 1;
+        // 다음라운드 설정
+        if (playResultInfo.nextRound > lastRound) {
+          // 게임종료시 nextRound = -1
+          playResultInfo.nextRound = -1;
+        } else {
+          // 게임진행시 nextRound ++
+          playResultInfo.nextRound = playInfo.round + 1;
+        }
 
         console.log("게임결과:", playResultInfo);
         io.emit("play game", playResultInfo);
+
         playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
+
         console.log("게임결과 클리어:", playResultInfo);
       } else {
         io.emit("play game", playResultInfo);
@@ -184,6 +204,7 @@ module.exports = (server) => {
 
     /**
      * 로그아웃 처리 : 로그인 유저목록 emit -> client 에서 선수배치(관전목록) 갱신
+     * nextRound = -2 -> 화면 logout 에 대한 점수표시 ( 남은 사람 기권승 )
      * @param nickName
      * @return
      */
@@ -194,7 +215,7 @@ module.exports = (server) => {
       if (socket.data.playerNo === 1 || socket.data.playerNo === 2) {
         p1TotScore = 0; // p1 총점
         p2TotScore = 0; // p2 총점
-        playResultInfo = { ...playResultInfo, ...playResultInit, round: 1, nextRound: 1, p1TotScore: 0, p2TotScore: 0 }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
+        playResultInfo = { ...playResultInfo, ...playResultInit, round: 1, nextRound: -2, p1TotScore: 0, p2TotScore: 0 }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
         console.log("선수퇴장으로 게임 리셋", playResultInfo);
       }
 
