@@ -10,6 +10,8 @@
       html,
       body {
         margin: 0;
+        width: 100vw;
+        height: 100vh;
         font-family: Source Code Pro, sourcecodepro, se-sourcecodepro, Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace, sans-serif;
         font-size: 14px;
       }
@@ -20,7 +22,7 @@
       .titfortat-game {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: 2fr 4fr 2fr 2fr 1fr 1fr 150px;
+        grid-template-rows: 3fr 4fr 3fr 3fr 2fr 2fr 150px;
         grid-template-areas:
           "your"
           "playground"
@@ -46,7 +48,7 @@
         display: flex;
         justify-content: space-evenly;
         align-items: center;
-        font-size: 20px;
+        font-size: 32px;
       }
       #div-playground-wrapper {
         grid-area: playground;
@@ -59,7 +61,7 @@
       }
       #div-playground-center {
         text-align: center;
-        font-size: 20px;
+        font-size: 32px;
       }
       #div-playground-my {
         text-align: center;
@@ -73,7 +75,7 @@
         display: flex;
         justify-content: space-evenly;
         align-items: center;
-        font-size: 20px;
+        font-size: 32px;
       }
       #div-control-buttons-wrapper {
         grid-area: control;
@@ -92,18 +94,18 @@
       #div-others-wrapper {
         grid-area: others;
         display: flex;
-        font-size: 12px;
+        font-size: 20px;
       }
       #div-etc-wrapper {
         grid-area: etc;
         background-color: white;
         display: flex;
-        font-size: 12px;
+        font-size: 20px;
       }
       #div-score-wrapper {
         grid-area: score;
         overflow: auto;
-        font-size: 12px;
+        font-size: 20px;
       }
       ul {
         list-style: none;
@@ -413,6 +415,15 @@
 
       // 게임종료후 패자/동점자 대기실 이동
       socket.on("go waiting room", function (serverMsg) {
+        console.log("go waiting room", serverMsg);
+        console.log("go waiting room 222", serverMsg.loginUserList);
+        serverMsg.forEach(function (elm) {
+          console.log("나의 player 998 셋팅", elm);
+          if (myInfo.nickName === elm.nickName) {
+            console.log("나의 player 998 셋팅");
+            myInfo.playerNo = elm.playerNo; // 998 셋팅
+          }
+        });
         renderPlayerLayout(serverMsg); // 선수배치(선수1,선수2,관전목록) rendering
       });
 
@@ -496,19 +507,29 @@
           }
         });
 
+        console.log("renderPlayerLayout:myInfo", myInfo);
+        console.log("renderPlayerLayout:player1Info", player1Info);
+        console.log("renderPlayerLayout:player2Info", player2Info);
         // 선수배치
         if (myInfo.playerNo === 1) {
           // 내가 1번 선수일때
-          divYourId.innerHTML = player2Info.nickName || "게임 대기중";
+          if (player2Info.nickName !== undefined) {
+            divYourId.innerHTML = player2Info.nickName || "게임 대기중";
+          }
           divMyId.innerHTML = myInfo.nickName;
         } else if (myInfo.playerNo === 2) {
           // 내가 2번 선수일때
-          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
+          if (player1Info.nickName !== undefined) {
+            divYourId.innerHTML = player1Info.nickName || "게임 대기중";
+          }
           divMyId.innerHTML = myInfo.nickName;
         } else {
           // 내가 관전일때
-          divYourId.innerHTML = player1Info.nickName || "게임 대기중";
-          divMyId.innerHTML = player2Info.nickName || "게임 대기중";
+          // --- 게임참여후 패배로 관전시, 이전참여자를 그대로 화면에 남겨둠
+          if (myInfo.playerNo !== 998) {
+            divYourId.innerHTML = player1Info.nickName || "게임 대기중";
+            divMyId.innerHTML = player2Info.nickName || "게임 대기중";
+          }
         }
 
         // 선수배치 완료시
