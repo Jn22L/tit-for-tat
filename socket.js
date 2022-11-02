@@ -36,16 +36,6 @@ module.exports = (server) => {
     });
 
     /**
-     * on game start
-     * @param
-     * @return
-     */
-    socket.on("game start", () => {
-      console.log("game start");
-      io.emit("game start", playResultInit);
-    });
-
-    /**
      * on play game
      * @param  playInfo       { round: 1, nickName: "", playerNo: 1, choice: "" }; // 개별선택정보
      * @return playResultInfo { round: 1, nextRound:1, isP1End:false, p1NickName:"", p1Choice: "", p1Score: 0, isP2End: false, p2NickName:"", p2Choice: "", p2Score: 0 }; // 개별선택취합결과
@@ -89,7 +79,7 @@ module.exports = (server) => {
         playResultInfo.p2TotScore = p2TotScore;
 
         // 다음라운드 설정
-        if (playResultInfo.nextRound > lastRound) {
+        if (playResultInfo.nextRound >= lastRound) {
           // 게임종료시 nextRound = -1
           playResultInfo.nextRound = -1;
         } else {
@@ -100,12 +90,34 @@ module.exports = (server) => {
         console.log("게임결과:", playResultInfo);
         io.emit("play game", playResultInfo);
 
-        playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
+        // 전송후 게임결과 클리어
+        if (playResultInfo.nextRound > lastRound) {
+          // 게임종료시 : 다시 1라운드 준비
+          p1TotScore = 0; // p1 총점
+          p2TotScore = 0; // p2 총점
+          playResultInfo.round = 1;
+          playResultInfo.nextRound = 1;
+          playResultInfo.p1TotScore = 0;
+          playResultInfo.p2TotScore = 0;
+          playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
+        } else {
+          // 게임진행시 nextRound ++
+          playResultInfo.nextRound = playInfo.round + 1;
+          playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
+        }
 
         console.log("게임결과 클리어:", playResultInfo);
-      } else {
-        io.emit("play game", playResultInfo);
       }
+    });
+
+    /**
+     * on go waiting room
+     * @param { isPlayNo1GoWaitingRoom: false, isPlayNo2GoWaitingRoom: true }
+     * @return
+     */
+    socket.on("go waiting room", (msg) => {
+      console.log("go waiting room", msg);
+      goWaitingRoomProcess(msg);
     });
 
     /**
@@ -203,6 +215,28 @@ module.exports = (server) => {
     }
 
     /**
+     * 정상게임종료후  대기실 이동처리
+     * @param { isPlayNo1GoWaitingRoom: false, isPlayNo2GoWaitingRoom: true }
+     * @return
+     */
+    async function goWaitingRoomProcess(msg) {
+      const sockets = await io.fetchSockets();
+
+      // 로그인 유저목록
+      const loginUserList = [];
+      for (const _socket of sockets) {
+        if (_socket.data.playerNo === 1 && msg.isPlayNo1GoWaitingRoom) {
+          _socket.data.playerNo = 999;
+        }
+        if (_socket.data.playerNo === 2 && msg.isPlayNo2GoWaitingRoom) {
+          _socket.data.playerNo = 999;
+        }
+        loginUserList.push({ nickName: _socket.data.nickName, playerNo: _socket.data.playerNo });
+      }
+      io.emit("go waiting room", loginUserList);
+    }
+
+    /**
      * 로그아웃 처리 : 로그인 유저목록 emit -> client 에서 선수배치(관전목록) 갱신
      * nextRound = -2 -> 화면 logout 에 대한 점수표시 ( 남은 사람 기권승 )
      * @param nickName
@@ -211,12 +245,11 @@ module.exports = (server) => {
     async function disconnectProcess() {
       const sockets = await io.fetchSockets();
 
-      // 선수 퇴장시 게임 리셋(점수/라운드)
+      // 선수 퇴장시 nextRound = -2 로 설정
       if (socket.data.playerNo === 1 || socket.data.playerNo === 2) {
         p1TotScore = 0; // p1 총점
         p2TotScore = 0; // p2 총점
-        playResultInfo = { ...playResultInfo, ...playResultInit, round: 1, nextRound: -2, p1TotScore: 0, p2TotScore: 0 }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
-        console.log("선수퇴장으로 게임 리셋", playResultInfo);
+        playResultInfo = { ...playResultInfo, nextRound: -2 };
       }
 
       // 로그인 유저목록
@@ -228,6 +261,16 @@ module.exports = (server) => {
       }
 
       socket.broadcast.emit("user logout", { logoutUser: socket.data, playResultInfo, allUserCount: io.of("/").sockets.size, loginUserList });
+
+      // 전송후 게임결과 클리어
+      // 다시 1라운드 준비
+      p1TotScore = 0; // p1 총점
+      p2TotScore = 0; // p2 총점
+      playResultInfo.round = 1;
+      playResultInfo.nextRound = 1;
+      playResultInfo.p1TotScore = 0;
+      playResultInfo.p2TotScore = 0;
+      playResultInfo = { ...playResultInfo, ...playResultInit }; //결과전송후 round, nextRound, p1TotScore, p2TotScore  만 제외하고 클리어
     }
 
     socket.on("choice", (msg) => {
