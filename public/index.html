@@ -10,19 +10,20 @@
       html,
       body {
         margin: 0;
-        width: 100vw;
-        height: 100vh;
         font-family: Source Code Pro, sourcecodepro, se-sourcecodepro, Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace, sans-serif;
         font-size: 14px;
       }
       .titfortat-login {
-        background-color: #ca9b52;
+        background-color: #0057c8;
+        color: #fff;
       }
 
       .titfortat-game {
         display: grid;
-        grid-template-columns: 1fr;
-        grid-template-rows: 3fr 4fr 3fr 3fr 2fr 2fr 150px;
+        height: 100vh;
+        grid-template-rows: 2fr 3fr 2fr 2fr 30px 30px 3fr;
+        grid-auto-rows: 1fr;
+        grid-gap: 2px;
         grid-template-areas:
           "your"
           "playground"
@@ -44,7 +45,8 @@
       }
       #div-your-wrapper {
         grid-area: your;
-        background-color: #ffcc80;
+        background-color: #3bb281;
+        color: #fff;
         display: flex;
         justify-content: space-evenly;
         align-items: center;
@@ -55,6 +57,7 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+        background-color: beige;
       }
       #div-playground-your {
         text-align: center;
@@ -72,6 +75,7 @@
       #div-my-wrapper {
         grid-area: my;
         background-color: #ffcc80;
+        color: #fff;
         display: flex;
         justify-content: space-evenly;
         align-items: center;
@@ -95,12 +99,15 @@
         grid-area: others;
         display: flex;
         font-size: 20px;
+        align-items: center;
       }
       #div-etc-wrapper {
         grid-area: etc;
-        background-color: white;
+        background-color: #be240d;
+        color: #fff;
         display: flex;
         font-size: 20px;
+        align-items: center;
       }
       #div-score-wrapper {
         grid-area: score;
@@ -415,12 +422,8 @@
 
       // 게임종료후 패자/동점자 대기실 이동
       socket.on("go waiting room", function (serverMsg) {
-        console.log("go waiting room", serverMsg);
-        console.log("go waiting room 222", serverMsg.loginUserList);
         serverMsg.forEach(function (elm) {
-          console.log("나의 player 998 셋팅", elm);
           if (myInfo.nickName === elm.nickName) {
-            console.log("나의 player 998 셋팅");
             myInfo.playerNo = elm.playerNo; // 998 셋팅
           }
         });
@@ -507,9 +510,6 @@
           }
         });
 
-        console.log("renderPlayerLayout:myInfo", myInfo);
-        console.log("renderPlayerLayout:player1Info", player1Info);
-        console.log("renderPlayerLayout:player2Info", player2Info);
         // 선수배치
         if (myInfo.playerNo === 1) {
           // 내가 1번 선수일때
